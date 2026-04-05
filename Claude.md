@@ -125,12 +125,20 @@ bun run zip
 - 每次只保留最新一张图片的 prompt
 - 下一次分析时直接覆盖，无确认弹窗
 - 图标只在悬停时显示，离开后隐藏（已分析的图片保持绿色勾常显）
+- 图片尺寸判断使用 `naturalWidth/naturalHeight`（适配 CSS 缩放的图片）
+- 忽略小于 60×60 的图片
 
 ### 划词生成（链路 B）
 - 工具栏用 Floating UI 虚拟元素定位（reference = 指针坐标点，非 selection range）
 - `placement: "top-start"` 使工具栏左边缘对齐指针 X 坐标
 - 点击工具栏外部或按 Escape 关闭
 - 若用户重新划词，面板重置（不累加）
+
+### 当前生成状态
+- 使用 `currentGeneration` 键存储在 `chrome.storage.local`
+- 状态流转：idle → fusing → generating → done/error
+- Popup 页面实时监听并显示当前生成状态
+- 支持在 Popup 中编辑 Prompt、选择尺寸、下载结果、重置状态
 
 ### 生成历史
 - 最多保存 20 条生成记录
@@ -179,6 +187,20 @@ export interface GenerationRequest {
 }
 ```
 
+### CurrentGeneration 接口
+```typescript
+export type GenerationStatus = "idle" | "fusing" | "generating" | "done" | "error";
+
+export interface CurrentGeneration {
+  status: GenerationStatus;
+  request: GenerationRequest | null;
+  progress: number;             // 0-100
+  resultUrl: string | null;     // 生成的图片 dataUrl
+  error: string | null;
+  createdAt: number;
+}
+```
+
 ### GenerationHistoryItem 接口
 ```typescript
 export interface GenerationHistoryItem {
@@ -202,11 +224,48 @@ export type ImageSize =
   | "1280x512";  // 5:2 文章封面
 ```
 
+### ImageSizeOption 接口 & IMAGE_SIZE_OPTIONS 常量
+```typescript
+export interface ImageSizeOption {
+  id: ImageSize;
+  label: string;
+  width: number;
+  height: number;
+  default?: boolean;
+}
+
+export const IMAGE_SIZE_OPTIONS: ImageSizeOption[] = [
+  { id: "1024x1024", label: "1:1 方形", width: 1024, height: 1024, default: true },
+  { id: "1280x512", label: "5:2 文章封面", width: 1280, height: 512 },
+  { id: "1280x720", label: "16:9 宽屏", width: 1280, height: 720 },
+  { id: "720x1280", label: "9:16 竖版", width: 720, height: 1280 },
+  { id: "1152x768", label: "3:2 摄影比", width: 1152, height: 768 },
+];
+```
+
+### TextSelection 接口
+```typescript
+export interface TextSelection {
+  text: string;         // 选中文字
+  x: number;            // 鼠标松开时的 clientX
+  y: number;            // 鼠标松开时的 clientY
+}
+```
+
 ---
 
 ## 已实现的增强功能
 
 ### Popup 页面增强
+- **当前生成实时管理**：
+  - 显示当前生成状态（fusing/generating/done/error）
+  - 可编辑的 Prompt 文本框（支持自定义修改）
+  - 图片尺寸下拉选择器
+  - 生成进度条（0-100%）
+  - 错误提示展示
+  - 结果图片预览
+  - 下载图片按钮
+  - 重置生成状态功能
 - 显示最新保存的 image prompt
 - 支持清除已保存的 prompt
 - 显示分析时间和图片 alt 文本
@@ -225,6 +284,13 @@ export type ImageSize =
 - 两阶段状态：fusing（优化 prompt）→ generating（生成图片）
 - 进度条显示
 
+### ImageAnalyzeButton 优化
+- 使用原生 button 组件替代 HeroUI Button（Shadow DOM 兼容性）
+- 动态更新虚拟元素位置（监听 scroll/resize）
+- 使用 `naturalWidth/naturalHeight` 判断图片尺寸（适配 CSS 缩放图片）
+- 按钮定位优化：使用 `offset({ mainAxis: -40, crossAxis: -20 })` 放置在图片内部右下角
+- 添加调试日志（console.log）
+
 ### 按钮悬停逻辑优化
 - `useImageHover` 接收 `buttonHoveredRef` 参数
 - 防止鼠标移到分析按钮时图片 hover 状态消失
@@ -234,6 +300,7 @@ export type ImageSize =
 - Prompt 融合：`fusePrompt()` 使用 doubao-seed-2-0-pro 优化
 - 图像生成：`generateImage()` 使用 Seedream 4.0
 - 历史管理：`saveToHistory()`、`getGenerationHistory()`、`clearGenerationHistory()`
+- 所有 API 请求添加 `mode: "cors"` 和 `credentials: "omit"`
 
 ### HeroUI v3 全面升级
 - 所有组件迁移到 HeroUI v3 compound 模式

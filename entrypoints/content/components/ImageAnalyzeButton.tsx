@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   useFloating,
   offset,
@@ -6,7 +6,6 @@ import {
   shift,
   autoUpdate,
 } from "@floating-ui/react";
-import { Button, Tooltip } from "@heroui/react";
 import { Wand2, Loader2, Check, AlertCircle } from "lucide-react";
 import type { HoveredImage } from "../hooks/useImageHover";
 import type { SavedImagePrompt } from "../../../lib/types";
@@ -33,17 +32,48 @@ export function ImageAnalyzeButton({
     analyzedImages.has(image.src) ? "done" : "idle"
   );
   const [errorMsg, setErrorMsg] = useState("");
+  const [virtualEl, setVirtualEl] = useState<any>(null);
 
-  // 使用虚拟元素锚定到图片右下角（strategy: fixed 穿透 overflow）
-  const virtualRef = useRef({
-    getBoundingClientRect: () => image.rect,
-  });
+  // 实时更新虚拟元素位置
+  useEffect(() => {
+    const updateVirtualEl = () => {
+      const rect = image.rect;
+      setVirtualEl({
+        getBoundingClientRect: () => rect,
+        contextElement: image.element,
+      });
+    };
 
+    updateVirtualEl();
+
+    // 监听滚动和resize更新位置
+    const update = () => {
+      const newRect = image.element.getBoundingClientRect();
+      setVirtualEl({
+        getBoundingClientRect: () => newRect,
+        contextElement: image.element,
+      });
+    };
+
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [image]);
+
+  // Floating UI 定位：bottom-end + offset 把按钮拉回图片内部
   const { refs, floatingStyles } = useFloating({
-    elements: { reference: virtualRef.current },
+    elements: { reference: virtualEl },
     strategy: "fixed",
     placement: "bottom-end",
-    middleware: [offset(4), flip(), shift({ padding: 4 })],
+    middleware: [
+      offset({ mainAxis: -40, crossAxis: -20 }), // 向左20px，向上40px
+      flip(),
+      shift({ padding: 4 }),
+    ],
     whileElementsMounted: autoUpdate,
   });
 
@@ -83,12 +113,6 @@ export function ImageAnalyzeButton({
     }
   }
 
-  const getTooltipContent = () => {
-    if (status === "done") return "已分析 — 点击重新分析";
-    if (status === "error") return errorMsg;
-    return "使用豆包视觉模型分析图片";
-  };
-
   const getIcon = () => {
     if (status === "loading") return <Loader2 className="w-4 h-4 animate-spin" />;
     if (status === "done") return <Check className="w-4 h-4" />;
@@ -97,9 +121,9 @@ export function ImageAnalyzeButton({
   };
 
   const getButtonColor = () => {
-    if (status === "done") return "success" as const;
-    if (status === "error") return "danger" as const;
-    return "primary" as const;
+    if (status === "done") return "#10b981"; // green-500
+    if (status === "error") return "#ef4444"; // red-500
+    return "#3b82f6"; // blue-500
   };
 
   return (
@@ -110,20 +134,27 @@ export function ImageAnalyzeButton({
       onMouseLeave={onMouseLeaveButton}
       className="z-[2147483647]"
     >
-      <Tooltip>
-        <Tooltip.Trigger>
-          <Button
-            isIconOnly
-            radius="full"
-            color={getButtonColor()}
-            onPress={handleClick}
-            isDisabled={status === "loading"}
-          >
-            {getIcon()}
-          </Button>
-        </Tooltip.Trigger>
-        <Tooltip.Content>{getTooltipContent()}</Tooltip.Content>
-      </Tooltip>
+      <button
+        onClick={handleClick}
+        title={status === "done" ? "已分析 — 点击重新分析" : status === "error" ? errorMsg : "使用豆包视觉模型分析图片"}
+        style={{
+          width: "32px",
+          height: "32px",
+          borderRadius: "9999px",
+          border: "none",
+          backgroundColor: getButtonColor(),
+          color: "white",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+          pointerEvents: "auto",
+        }}
+        disabled={status === "loading"}
+      >
+        {getIcon()}
+      </button>
     </div>
   );
 }

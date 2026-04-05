@@ -24,6 +24,12 @@
 - 查看最新保存的图片描述
 - 清除已保存的 prompt
 - 查看和管理生成历史
+- **当前生成状态实时显示**：
+  - Prompt 编辑区（支持自定义修改）
+  - 图片尺寸选择
+  - 生成进度条
+  - 结果图片预览和下载
+  - 重置功能
 
 ## 技术栈
 
@@ -79,18 +85,29 @@ bun run zip
 
 1. 访问任意包含图片的网页
 2. 悬停在图片上（图片尺寸 ≥ 60×60）
-3. 点击右下角的紫色魔法棒图标
+3. 点击右下角的蓝色魔法棒图标
 4. 等待分析完成（图标变为绿色勾）
+5. 分析结果会自动保存到 Popup 页面
 
 ### 3. 生成图片
 
+#### 方式一：在网页上直接生成
 1. 在网页上选中任意文字（≥3个字符）
 2. 松开鼠标后出现工具栏
-3. 点击加号按钮生成图片
+3. 点击加号按钮打开生成面板
 4. 查看合并后的 prompt（可编辑）
 5. 选择图片尺寸
 6. 点击 "生成图片"
 7. 生成完成后可点击 "下载图片"
+
+#### 方式二：在 Popup 中管理生成
+1. 打开扩展 Popup 页面
+2. 在 "当前生成" 区域可以：
+   - 编辑 Prompt 文本
+   - 选择图片尺寸
+   - 查看生成进度
+   - 预览结果图片
+   - 下载图片或重置状态
 
 ## 项目结构
 
@@ -104,10 +121,10 @@ image2prompt/
 │   ├── types.ts               # TypeScript 类型定义
 │   └── api.ts                 # 火山引擎 ARK API + 图像生成
 ├── entrypoints/
-│   ├── background.ts          # Service Worker
+│   ├── background.ts          # Service Worker（消息路由 + API 调用）
 │   ├── popup/
 │   │   ├── index.html
-│   │   └── main.tsx           # Popup 页面
+│   │   └── main.tsx           # Popup 页面（API Key + 当前生成 + 历史）
 │   └── content/
 │       ├── index.tsx          # Shadow DOM 入口
 │       ├── App.tsx            # 主应用
@@ -122,7 +139,9 @@ image2prompt/
 ├── package.json
 ├── wxt.config.ts
 ├── tsconfig.json
-└── README.md
+├── README.md
+├── CLAUDE.md                    # AI 开发配置
+└── Agents.md                    # 原始工程提示词
 ```
 
 ## 火山引擎 ARK 配置

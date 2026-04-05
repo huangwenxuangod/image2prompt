@@ -7,10 +7,14 @@ import { SelectionToolbar } from "./components/SelectionToolbar";
 import type { SavedImagePrompt, ExtensionMessage, ImageSize } from "../../lib/types";
 
 export default function App() {
+  console.log('🚀 App component rendering!');
+
   // 防止图片图标悬停时触发 hover 消失
   const buttonHovered = useRef(false);
 
   const hoveredImage = useImageHover(buttonHovered);
+  console.log('🖼️ hoveredImage state:', hoveredImage);
+
   const { selection, clearSelection } = useTextSelection();
   const { savedPrompt, savePrompt } = useSavedPrompt();
 

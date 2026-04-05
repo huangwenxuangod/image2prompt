@@ -5,8 +5,6 @@ import type { ImageSize, GenerationHistoryItem, SavedImagePrompt } from "./types
 // ====================
 const ARK_CONFIG = {
   get baseUrl() {
-    // 从 storage 读取，或者使用环境变量
-    // 这里我们通过 getApiKey 一起获取配置
     return "https://ark.cn-beijing.volces.com/api/v3";
   },
   models: {
@@ -35,7 +33,10 @@ export async function analyzeImageWithVision(
   if (!apiKey) throw new Error("No API key configured. Open the extension popup to set it.");
 
   // 1. fetch 图片 → base64（Background context，无 CORS 限制）
-  const response = await fetch(imageUrl);
+  const response = await fetch(imageUrl, {
+    mode: "cors",
+    credentials: "omit",
+  });
   if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
   const blob = await response.blob();
 
@@ -52,6 +53,7 @@ export async function analyzeImageWithVision(
   // 2. 调用豆包视觉模型
   const res = await fetch(`${ARK_CONFIG.baseUrl}/chat/completions`, {
     method: "POST",
+    mode: "cors",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
@@ -101,6 +103,7 @@ export async function fusePrompt(raw: string): Promise<string> {
 
   const res = await fetch(`${ARK_CONFIG.baseUrl}/chat/completions`, {
     method: "POST",
+    mode: "cors",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
@@ -138,6 +141,7 @@ export async function generateImage(prompt: string, size: ImageSize = "1024x1024
 
   const res = await fetch(`${ARK_CONFIG.baseUrl}/images/generations`, {
     method: "POST",
+    mode: "cors",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
@@ -161,7 +165,10 @@ export async function generateImage(prompt: string, size: ImageSize = "1024x1024
   if (!url) throw new Error("No image URL in response");
 
   // 将 URL 转为 base64 保存（因为 URL 有时效性）
-  const imageResponse = await fetch(url);
+  const imageResponse = await fetch(url, {
+    mode: "cors",
+    credentials: "omit",
+  });
   if (!imageResponse.ok) throw new Error(`Failed to fetch generated image: ${imageResponse.status}`);
   const imageBlob = await imageResponse.blob();
 

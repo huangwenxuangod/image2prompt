@@ -14,13 +14,18 @@ export function useImageHover(buttonHoveredRef: React.MutableRefObject<boolean>)
   useEffect(() => {
     function onEnter(e: MouseEvent) {
       const target = e.target as HTMLElement;
+      console.log('🐭 mouseover event', target, target instanceof HTMLImageElement);
       if (!(target instanceof HTMLImageElement)) return;
-      if (target.width < 60 || target.height < 60) return; // 忽略小图标
+      console.log('🖼️ Image detected:', { src: target.src, width: target.width, height: target.height, naturalWidth: target.naturalWidth, naturalHeight: target.naturalHeight });
+      // 改用 naturalWidth/naturalHeight，因为有些图片 CSS 缩放了
+      if (target.naturalWidth < 60 || target.naturalHeight < 60) return; // 忽略小图标
 
       if (leaveTimer.current) clearTimeout(leaveTimer.current);
+      const rect = target.getBoundingClientRect();
+      console.log('📍 Setting hovered image:', { src: target.src, rect });
       setHoveredImage({
         element: target,
-        rect: target.getBoundingClientRect(),
+        rect: rect,
         src: target.src,
         alt: target.alt,
       });
