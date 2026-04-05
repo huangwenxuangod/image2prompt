@@ -6,6 +6,8 @@ import {
   shift,
   autoUpdate,
 } from "@floating-ui/react";
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@heroui/react";
+import { Wand2, Loader2, Check, AlertCircle } from "lucide-react";
 import type { HoveredImage } from "../hooks/useImageHover";
 import type { SavedImagePrompt } from "../../../lib/types";
 import type { ExtensionMessage } from "../../../lib/types";
@@ -81,6 +83,25 @@ export function ImageAnalyzeButton({
     }
   }
 
+  const getTooltipContent = () => {
+    if (status === "done") return "已分析 — 点击重新分析";
+    if (status === "error") return errorMsg;
+    return "使用豆包视觉模型分析图片";
+  };
+
+  const getIcon = () => {
+    if (status === "loading") return <Loader2 className="w-4 h-4 animate-spin" />;
+    if (status === "done") return <Check className="w-4 h-4" />;
+    if (status === "error") return <AlertCircle className="w-4 h-4" />;
+    return <Wand2 className="w-4 h-4" />;
+  };
+
+  const getButtonColor = () => {
+    if (status === "done") return "success" as const;
+    if (status === "error") return "danger" as const;
+    return "primary" as const;
+  };
+
   return (
     <div
       ref={refs.setFloating}
@@ -89,63 +110,21 @@ export function ImageAnalyzeButton({
       onMouseLeave={onMouseLeaveButton}
       className="z-[2147483647]"
     >
-      <button
-        onClick={handleClick}
-        title={
-          status === "done"
-            ? "已分析 — 点击重新分析"
-            : status === "error"
-            ? errorMsg
-            : "使用豆包视觉模型分析图片"
-        }
-        className={[
-          "flex h-7 w-7 items-center justify-center rounded-full",
-          "text-white text-xs font-medium transition-all duration-150",
-          "shadow-sm border border-white/20",
-          "active:scale-95",
-          status === "done"
-            ? "bg-success-600 hover:bg-success-500"
-            : status === "error"
-            ? "bg-danger-600 hover:bg-danger-500"
-            : "bg-[#534AB7] hover:bg-[#7F77DD]",
-        ].join(" ")}
-      >
-        {status === "loading" ? (
-          // Inline SVG spinner（不依赖 HeroUI Spinner，避免 CSS 变量问题）
-          <svg
-            className="h-3.5 w-3.5 animate-spin"
-            viewBox="0 0 24 24"
-            fill="none"
+      <Tooltip delay={0}>
+        <TooltipTrigger>
+          <Button
+            isIconOnly
+            size="sm"
+            radius="full"
+            color={getButtonColor()}
+            onPress={handleClick}
+            isLoading={status === "loading"}
           >
-            <circle
-              cx="12" cy="12" r="10"
-              stroke="currentColor" strokeWidth="3" opacity="0.3"
-            />
-            <path
-              d="M12 2a10 10 0 0 1 10 10"
-              stroke="currentColor" strokeWidth="3"
-              strokeLinecap="round"
-            />
-          </svg>
-        ) : status === "done" ? (
-          // 勾
-          <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M3 8l3.5 3.5L13 5"
-              stroke="currentColor" strokeWidth="2"
-              strokeLinecap="round" strokeLinejoin="round"
-            />
-          </svg>
-        ) : status === "error" ? (
-          // 感叹号
-          <span>!</span>
-        ) : (
-          // 魔法棒图标
-          <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M13.5 1.5l1 1-1.5 1.5-1-1 1.5-1.5zm-9 9l1 1-1.5 1.5-1-1 1.5-1.5zM2 2l.75.75L1.25 4.25.5 3.5 2 2zm10 10l.75.75-1.5 1.5-.75-.75 1.5-1.5zM3.5 1l.5 2H2L3.5 1zm9 9l.5 2h-2l1.5-2zM1 3.5l2 .5v2L1 5.5V3.5zm9 9l2 .5v2l-1.5-1 -1.5.5.5-2zM5 3a6 6 0 0 1 8 8L5 3z"/>
-          </svg>
-        )}
-      </button>
+            {status !== "loading" && getIcon()}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>{getTooltipContent()}</TooltipContent>
+      </Tooltip>
     </div>
   );
 }

@@ -4,8 +4,7 @@ import { useTextSelection } from "./hooks/useTextSelection";
 import { useSavedPrompt } from "./hooks/useSavedPrompt";
 import { ImageAnalyzeButton } from "./components/ImageAnalyzeButton";
 import { SelectionToolbar } from "./components/SelectionToolbar";
-import { GenerationPanel } from "./components/GenerationPanel";
-import type { SavedImagePrompt } from "../../lib/types";
+import type { SavedImagePrompt, ExtensionMessage, ImageSize } from "../../lib/types";
 
 export default function App() {
   // 防止图片图标悬停时触发 hover 消失
@@ -17,9 +16,6 @@ export default function App() {
 
   // 已分析过的图片 src（用于显示绿色勾，session 内有效）
   const [analyzedImages, setAnalyzedImages] = useState<Set<string>>(new Set());
-
-  // 面板开关：工具栏点击"生成图片"后展开
-  const [panelOpen, setPanelOpen] = useState(false);
 
   const handleAnalyzed = useCallback(
     (data: SavedImagePrompt) => {
@@ -33,18 +29,24 @@ export default function App() {
     [savePrompt]
   );
 
-  // 点击页面空白区域关闭工具栏和面板
-  useEffect(() => {
-    function onMouseDown(e: MouseEvent) {
-      // 若点击发生在 shadow DOM 内部，事件会被 stopPropagation 拦截
-      // 此处仅处理宿主页面点击
-      if (!panelOpen) return;
-      setPanelOpen(false);
-      clearSelection();
-    }
-    document.addEventListener("mousedown", onMouseDown, true);
-    return () => document.removeEventListener("mousedown", onMouseDown, true);
-  }, [panelOpen, clearSelection]);
+  const handleGenerate = useCallback(async () => {
+    if (!selection) return;
+
+    // 发送消息给 background 开始生成
+    const defaultSize: ImageSize = "1024x1024";
+
+    await browser.runtime.sendMessage({
+      type: "START_GENERATION",
+      request: {
+        imagePrompt: savedPrompt?.prompt ?? null,
+        textContext: selection.text,
+        size: defaultSize,
+      },
+    } satisfies ExtensionMessage);
+
+    // 关闭工具栏
+    clearSelection();
+  }, [selection, savedPrompt, clearSelection]);
 
   return (
     <>
@@ -59,25 +61,12 @@ export default function App() {
         />
       )}
 
-      {/* 链路 B：划词工具栏 */}
-      {selection && !panelOpen && (
+      {/* 链路 B：划词工具栏（简洁版，只一行） */}
+      {selection && (
         <SelectionToolbar
           selection={selection}
-          onGenerate={() => setPanelOpen(true)}
+          onGenerate={handleGenerate}
           onDismiss={() => {
-            clearSelection();
-            setPanelOpen(false);
-          }}
-        />
-      )}
-
-      {/* 链路 B：生成面板（工具栏展开后显示） */}
-      {selection && panelOpen && (
-        <GenerationPanel
-          selection={selection}
-          savedPrompt={savedPrompt}
-          onClose={() => {
-            setPanelOpen(false);
             clearSelection();
           }}
         />

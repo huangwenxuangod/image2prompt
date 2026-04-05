@@ -6,30 +6,34 @@
 
 ### 🔗 链路 A — 图片分析
 - 悬停页面任意图片时显示分析按钮
-- 点击按钮使用 Claude Vision 分析图片
-- 自动生成英文 prompt（≤80词）
+- 点击按钮使用豆包视觉模型分析图片
+- 自动生成中文图片描述
 - 保存 prompt 到本地存储
 - 已分析图片显示绿色勾标记
 
 ### 🔗 链路 B — 划词生成图片
 - 选中文字后在鼠标位置显示工具栏
-- 合并图片 prompt + 选中文字
-- 生成新图片（当前为 Mock，可替换真实 API）
+- 合并图片描述 + 选中文字
+- Prompt 智能融合优化
+- 多种图片尺寸可选（1:1、16:9、9:16、5:2、3:2）
 - 支持下载生成的图片
+- 生成历史记录（最多保存 20 条）
 
 ### ⚙️ Popup 设置页
-- 配置 Anthropic API Key
-- 查看最新保存的 image prompt
+- 配置火山引擎 ARK API Key
+- 查看最新保存的图片描述
 - 清除已保存的 prompt
+- 查看和管理生成历史
 
 ## 技术栈
 
 - **运行时**: Bun 1.x
 - **框架**: WXT 0.20.x + React 19
 - **UI**: HeroUI v3 + Tailwind CSS v4
+- **图标**: Lucide React
 - **定位**: Floating UI
 - **类型**: TypeScript 6.x (strict mode)
-- **AI**: Anthropic SDK (claude-sonnet-4-5)
+- **AI**: 火山引擎 ARK（豆包视觉模型 + Seedream 图像生成）
 
 ## 快速开始
 
@@ -66,10 +70,10 @@ bun run zip
 ### 1. 配置 API Key
 
 1. 点击浏览器工具栏的扩展图标
-2. 输入你的 Anthropic API Key（格式：`sk-ant-...`）
-3. 点击 "Save API Key"
+2. 输入你的火山引擎 ARK API Key（格式：`sk-...`）
+3. 点击 "保存 API Key"
 
-> API Key 仅保存在本地，不会发送到任何第三方服务器（除 api.anthropic.com）
+> API Key 仅保存在本地，不会发送到任何第三方服务器（除火山引擎 ARK API）
 
 ### 2. 分析图片
 
@@ -82,9 +86,11 @@ bun run zip
 
 1. 在网页上选中任意文字（≥3个字符）
 2. 松开鼠标后出现工具栏
-3. 点击 "生成图片"
-4. 查看合并后的 prompt 并点击 "生成图片"
-5. 生成完成后可点击 "下载图片"
+3. 点击加号按钮生成图片
+4. 查看合并后的 prompt（可编辑）
+5. 选择图片尺寸
+6. 点击 "生成图片"
+7. 生成完成后可点击 "下载图片"
 
 ## 项目结构
 
@@ -96,7 +102,7 @@ image2prompt/
 │   └── icon.svg               # 扩展图标
 ├── lib/
 │   ├── types.ts               # TypeScript 类型定义
-│   └── api.ts                 # Claude API + 图像生成
+│   └── api.ts                 # 火山引擎 ARK API + 图像生成
 ├── entrypoints/
 │   ├── background.ts          # Service Worker
 │   ├── popup/
@@ -119,53 +125,15 @@ image2prompt/
 └── README.md
 ```
 
-## 替换图像生成 API
+## 火山引擎 ARK 配置
 
-当前 `lib/api.ts` 中的 `generateImage()` 是 mock 实现。替换为真实 API 示例：
+当前项目使用火山引擎 ARK API：
 
-### Together AI (Flux)
+- **视觉模型**: doubao-1-5-vision-pro-32k-250115
+- **Prompt 融合**: doubao-seed-2-0-pro-260215
+- **图像生成**: doubao-seedream-4-0-250828
 
-```typescript
-export async function generateImage(prompt: string): Promise<string> {
-  const apiKey = await getApiKey();
-  const res = await fetch("https://api.together.xyz/v1/images/generations", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "black-forest-labs/FLUX.1-schnell",
-      prompt,
-      n: 1,
-    }),
-  });
-  const data = await res.json();
-  return data.data[0].url;
-}
-```
-
-### OpenAI (DALL-E 3)
-
-```typescript
-export async function generateImage(prompt: string): Promise<string> {
-  const apiKey = await getApiKey();
-  const res = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "dall-e-3",
-      prompt,
-      size: "1024x1024",
-    }),
-  });
-  const data = await res.json();
-  return data.data[0].url;
-}
-```
+API 端点: `https://ark.cn-beijing.volces.com/api/v3`
 
 ## 注意事项
 
@@ -173,6 +141,7 @@ export async function generateImage(prompt: string): Promise<string> {
 - **Shadow DOM**: 所有 UI 在 Shadow DOM 内渲染，不污染宿主页面样式
 - **图片尺寸**: 小于 60×60 的图片会被忽略
 - **存储**: 每次只保存最新一张图片的 prompt，新分析会覆盖旧的
+- **生成历史**: 最多保存 20 条生成记录，超出后自动删除最旧的
 
 ## 开发规范
 

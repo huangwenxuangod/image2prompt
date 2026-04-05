@@ -49,6 +49,18 @@ export interface GenerationRequest {
   size: ImageSize;              // 图像尺寸
 }
 
+// 当前生成任务状态（storage key: "currentGeneration"）
+export type GenerationStatus = "idle" | "fusing" | "generating" | "done" | "error";
+
+export interface CurrentGeneration {
+  status: GenerationStatus;
+  request: GenerationRequest | null;
+  progress: number;             // 0-100
+  resultUrl: string | null;     // 生成的图片 dataUrl
+  error: string | null;
+  createdAt: number;
+}
+
 // 生成历史记录项
 export interface GenerationHistoryItem {
   id: string;                    // UUID
@@ -64,11 +76,14 @@ export type ExtensionMessage =
   | { type: "ANALYZE_IMAGE"; imageUrl: string; imageAlt: string }
   | { type: "ANALYZE_IMAGE_RESULT"; prompt: string }
   | { type: "ANALYZE_IMAGE_ERROR"; error: string }
+  | { type: "START_GENERATION"; request: Omit<GenerationRequest, "finalPrompt"> }
   | { type: "GENERATE_IMAGE"; request: GenerationRequest }
   | { type: "GENERATE_IMAGE_RESULT"; dataUrl: string; historyItem: GenerationHistoryItem }
   | { type: "GENERATE_IMAGE_ERROR"; error: string }
   | { type: "GET_SAVED_PROMPT" }
   | { type: "GET_SAVED_PROMPT_RESULT"; prompt: SavedImagePrompt | null }
+  | { type: "GET_CURRENT_GENERATION" }
+  | { type: "GET_CURRENT_GENERATION_RESULT"; current: CurrentGeneration | null }
   | { type: "GET_GENERATION_HISTORY" }
   | { type: "GET_GENERATION_HISTORY_RESULT"; history: GenerationHistoryItem[] }
   | { type: "CLEAR_GENERATION_HISTORY" }
