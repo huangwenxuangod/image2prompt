@@ -1,0 +1,28 @@
+{
+  "name": "image-gen-plugin",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wxt dev",
+    "build": "wxt build",
+    "zip": "wxt zip",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "@floating-ui/react": "^0.27.19",
+    "@heroui/react": "^3.0.1",
+    "@heroui/styles": "^3.0.1",
+    "@tailwindcss/vite": "^4.2.2",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwind-variants": "^3.2.2",
+    "tailwindcss": "^4.2.2",
+    "wxt": "^0.20.20"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@wxt-dev/module-react": "^1.2.2",
+    "typescript": "^6.0.2"
+  }
+}
