@@ -6,7 +6,7 @@ import {
   shift,
   autoUpdate,
 } from "@floating-ui/react";
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@heroui/react";
+import { Button, Tooltip } from "@heroui/react";
 import { Wand2, Loader2, Check, AlertCircle } from "lucide-react";
 import type { HoveredImage } from "../hooks/useImageHover";
 import type { SavedImagePrompt } from "../../../lib/types";
@@ -110,20 +110,19 @@ export function ImageAnalyzeButton({
       onMouseLeave={onMouseLeaveButton}
       className="z-[2147483647]"
     >
-      <Tooltip delay={0}>
-        <TooltipTrigger>
+      <Tooltip>
+        <Tooltip.Trigger>
           <Button
             isIconOnly
-            size="sm"
             radius="full"
             color={getButtonColor()}
             onPress={handleClick}
-            isLoading={status === "loading"}
+            isDisabled={status === "loading"}
           >
-            {status !== "loading" && getIcon()}
+            {getIcon()}
           </Button>
-        </TooltipTrigger>
-        <TooltipContent>{getTooltipContent()}</TooltipContent>
+        </Tooltip.Trigger>
+        <Tooltip.Content>{getTooltipContent()}</Tooltip.Content>
       </Tooltip>
     </div>
   );

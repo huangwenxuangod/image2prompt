@@ -109,7 +109,9 @@ bun run zip
 ### HeroUI v3
 - v3 不需要 `<HeroUIProvider>` 包裹
 - 直接使用组件
-- 使用 compound 模式构建组件（如 Tooltip + TooltipTrigger + TooltipContent）
+- 使用 compound 模式构建组件（如 Tooltip + Tooltip.Trigger + Tooltip.Content）
+- Card 组件使用：Card.Header, Card.Content, Card.Footer
+- Select 组件使用：Select.Trigger, Select.Value, Select.Popover, ListBox
 
 ### Lucide React 图标
 - 使用 lucide-react 提供的图标组件
@@ -232,3 +234,11 @@ export type ImageSize =
 - Prompt 融合：`fusePrompt()` 使用 doubao-seed-2-0-pro 优化
 - 图像生成：`generateImage()` 使用 Seedream 4.0
 - 历史管理：`saveToHistory()`、`getGenerationHistory()`、`clearGenerationHistory()`
+
+### HeroUI v3 全面升级
+- 所有组件迁移到 HeroUI v3 compound 模式
+- Card 组件使用 `Card.Header`/`Card.Content`/`Card.Footer`
+- Tooltip 组件使用 `Tooltip.Trigger`/`Tooltip.Content`
+- Select 组件使用 `Select.Trigger`/`Select.Value`/`Select.Popover`/`ListBox`
+- 移除了过时的 CardHeader/CardBody/Divider/SelectItem/Textarea 等导入
+- 所有 Button、Input、TextArea 组件使用 v3 API

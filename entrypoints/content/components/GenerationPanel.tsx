@@ -8,15 +8,11 @@ import {
 } from "@floating-ui/react";
 import {
   Card,
-  CardHeader,
-  CardBody,
   Button,
   Select,
-  SelectItem,
-  Textarea,
+  ListBox,
+  TextArea,
   Tooltip,
-  TooltipContent,
-  TooltipTrigger,
 } from "@heroui/react";
 import { X, Download, RefreshCw, Image as ImageIcon } from "lucide-react";
 import type { SavedImagePrompt, GenerationRequest, ExtensionMessage, ImageSize } from "../../../lib/types";
@@ -134,27 +130,26 @@ export function GenerationPanel({ selection, savedPrompt, onClose }: Props) {
     >
       <Card className="shadow-xl">
         {/* Header */}
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <Card.Header className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-2">
             <ImageIcon className="w-4 h-4 text-default-500" />
             <span className="text-xs font-medium text-default-700">合并生成图片</span>
           </div>
-          <Tooltip delay={0}>
-            <TooltipTrigger>
+          <Tooltip>
+            <Tooltip.Trigger>
               <Button
                 isIconOnly
-                size="sm"
                 variant="light"
                 onPress={onClose}
               >
                 <X className="w-4 h-4" />
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>关闭</TooltipContent>
+            </Tooltip.Trigger>
+            <Tooltip.Content>关闭</Tooltip.Content>
           </Tooltip>
-        </CardHeader>
+        </Card.Header>
 
-        <CardBody className="pt-0 flex flex-col gap-3">
+        <Card.Content className="pt-0 flex flex-col gap-3">
           {/* 图片 prompt 来源 */}
           <div>
             <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-default-400">
@@ -184,11 +179,10 @@ export function GenerationPanel({ selection, savedPrompt, onClose }: Props) {
             <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-default-400">
               最终 Prompt（可编辑）
             </p>
-            <Textarea
+            <TextArea
               value={editablePrompt}
               onValueChange={setEditablePrompt}
-              size="sm"
-              minRows={4}
+              rows={4}
               placeholder="在此编辑最终发送给图像生成模型的 prompt..."
             />
           </div>
@@ -199,15 +193,21 @@ export function GenerationPanel({ selection, savedPrompt, onClose }: Props) {
               图片尺寸
             </p>
             <Select
-              size="sm"
-              selectedKeys={[selectedSize]}
+              selectedKey={selectedSize}
               onSelectionChange={(keys) => setSelectedSize(Array.from(keys)[0] as ImageSize)}
             >
-              {IMAGE_SIZE_OPTIONS.map((option) => (
-                <SelectItem key={option.id} textValue={option.label}>
-                  {option.label} ({option.width}×{option.height})
-                </SelectItem>
-              ))}
+              <Select.Trigger>
+                <Select.Value />
+              </Select.Trigger>
+              <Select.Popover>
+                <ListBox>
+                  {IMAGE_SIZE_OPTIONS.map((option) => (
+                    <ListBox.Item key={option.id} textValue={option.label}>
+                      {option.label} ({option.width}×{option.height})
+                    </ListBox.Item>
+                  ))}
+                </ListBox>
+              </Select.Popover>
             </Select>
           </div>
 
@@ -248,10 +248,9 @@ export function GenerationPanel({ selection, savedPrompt, onClose }: Props) {
           <div className="flex gap-2">
             {status === "done" ? (
               <>
-                <Tooltip delay={0}>
-                  <TooltipTrigger>
+                <Tooltip>
+                  <Tooltip.Trigger>
                     <Button
-                      size="sm"
                       variant="bordered"
                       fullWidth
                       onPress={handleDownload}
@@ -259,32 +258,30 @@ export function GenerationPanel({ selection, savedPrompt, onClose }: Props) {
                       <Download className="w-4 h-4 mr-1" />
                       下载图片
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>下载图片</TooltipContent>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content>下载图片</Tooltip.Content>
                 </Tooltip>
-                <Tooltip delay={0}>
-                  <TooltipTrigger>
+                <Tooltip>
+                  <Tooltip.Trigger>
                     <Button
-                      size="sm"
-                      color="primary"
+                      variant="solid"
                       fullWidth
                       onPress={handleGenerate}
                     >
                       <RefreshCw className="w-4 h-4 mr-1" />
                       重新生成
                     </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>重新生成</TooltipContent>
+                  </Tooltip.Trigger>
+                  <Tooltip.Content>重新生成</Tooltip.Content>
                 </Tooltip>
               </>
             ) : (
-              <Tooltip delay={0}>
-                <TooltipTrigger>
+              <Tooltip>
+                <Tooltip.Trigger>
                   <Button
-                    size="sm"
-                    color="primary"
+                    variant="solid"
                     fullWidth
-                    isLoading={status === "fusing" || status === "generating"}
+                    isDisabled={status === "fusing" || status === "generating"}
                     onPress={handleGenerate}
                   >
                     <ImageIcon className="w-4 h-4 mr-1" />
@@ -294,18 +291,18 @@ export function GenerationPanel({ selection, savedPrompt, onClose }: Props) {
                       ? "生成中…"
                       : "生成图片"}
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>
+                </Tooltip.Trigger>
+                <Tooltip.Content>
                   {status === "fusing"
                     ? "优化中…"
                     : status === "generating"
                     ? "生成中…"
                     : "生成图片"}
-                </TooltipContent>
+                </Tooltip.Content>
               </Tooltip>
             )}
           </div>
-        </CardBody>
+        </Card.Content>
       </Card>
     </div>
   );

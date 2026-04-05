@@ -6,7 +6,7 @@ import {
   shift,
   autoUpdate,
 } from "@floating-ui/react";
-import { Button, Tooltip, TooltipContent, TooltipTrigger } from "@heroui/react";
+import { Button, Tooltip } from "@heroui/react";
 import { Plus, X } from "lucide-react";
 import type { TextSelection } from "../../../lib/types";
 
@@ -70,10 +70,9 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
         <div className="h-5 w-px bg-default-200" />
 
         {/* 生成按钮 */}
-        <Tooltip delay={0}>
-          <TooltipTrigger>
+        <Tooltip>
+          <Tooltip.Trigger>
             <Button
-              size="sm"
               variant="light"
               color="primary"
               onPress={(e) => {
@@ -83,15 +82,14 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
             >
               <Plus className="w-4 h-4" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>生成图片</TooltipContent>
+          </Tooltip.Trigger>
+          <Tooltip.Content>生成图片</Tooltip.Content>
         </Tooltip>
 
         {/* 关闭按钮 */}
-        <Tooltip delay={0}>
-          <TooltipTrigger>
+        <Tooltip>
+          <Tooltip.Trigger>
             <Button
-              size="sm"
               variant="light"
               onPress={(e) => {
                 e.stopPropagation();
@@ -100,8 +98,8 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
             >
               <X className="w-4 h-4" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>关闭</TooltipContent>
+          </Tooltip.Trigger>
+          <Tooltip.Content>关闭</Tooltip.Content>
         </Tooltip>
       </div>
     </div>

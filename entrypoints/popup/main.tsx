@@ -5,15 +5,10 @@ import {
   Button,
   Input,
   Card,
-  CardHeader,
-  CardBody,
-  Divider,
   Tooltip,
-  TooltipContent,
-  TooltipTrigger,
   Select,
-  SelectItem,
-  Textarea,
+  ListBox,
+  TextArea,
 } from "@heroui/react";
 import {
   Trash2,
@@ -145,22 +140,20 @@ function Popup() {
 
       {/* API Key Section */}
       <Card className="shadow-sm">
-        <CardHeader className="pb-2">
+        <Card.Header className="pb-2">
           <p className="text-xs text-default-500">
             输入火山引擎 ARK API Key。仅保存在本地，仅发送至火山引擎 API。
           </p>
-        </CardHeader>
-        <CardBody className="pt-0 flex flex-col gap-3">
+        </Card.Header>
+        <Card.Content className="pt-0 flex flex-col gap-3">
           <Input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             placeholder="sk-..."
-            size="sm"
           />
           <Button
-            color="primary"
-            size="sm"
+            variant="solid"
             fullWidth
             onPress={handleSave}
           >
@@ -176,13 +169,13 @@ function Popup() {
               </>
             )}
           </Button>
-        </CardBody>
+        </Card.Content>
       </Card>
 
       {/* Current Generation Section */}
       {(currentGeneration || savedPrompt) && (
         <Card className="shadow-sm">
-          <CardHeader className="pb-2 flex flex-row items-center gap-2">
+          <Card.Header className="pb-2 flex flex-row items-center gap-2">
             <Sparkles className="w-4 h-4 text-primary" />
             <h2 className="text-xs font-medium text-default-700">当前生成</h2>
             {currentGeneration && (
@@ -190,20 +183,18 @@ function Popup() {
                 {getStatusText(currentGeneration.status)}
               </span>
             )}
-          </CardHeader>
-          <CardBody className="pt-0 flex flex-col gap-3">
+          </Card.Header>
+          <Card.Content className="pt-0 flex flex-col gap-3">
             {/* Prompt 编辑区 */}
             <div className="flex flex-col gap-1">
               <p className="text-[10px] font-medium uppercase tracking-wide text-default-400">
                 Prompt
               </p>
-              <Textarea
+              <TextArea
                 value={editablePrompt}
                 onChange={(e) => setEditablePrompt(e.target.value)}
                 placeholder="在此输入或编辑 prompt..."
-                size="sm"
-                minRows={3}
-                maxRows={5}
+                rows={3}
                 isDisabled={currentGeneration?.status === "fusing" || currentGeneration?.status === "generating"}
               />
             </div>
@@ -214,14 +205,20 @@ function Popup() {
                 图片尺寸
               </p>
               <Select
-                selectedKeys={[selectedSize]}
-                onChange={(e) => setSelectedSize(e.target.value as ImageSize)}
-                size="sm"
+                selectedKey={selectedSize}
+                onSelectionChange={(key) => setSelectedSize(key as ImageSize)}
                 isDisabled={currentGeneration?.status === "fusing" || currentGeneration?.status === "generating"}
               >
-                {IMAGE_SIZE_OPTIONS.map((option) => (
-                  <SelectItem key={option.id}>{option.label}</SelectItem>
-                ))}
+                <Select.Trigger>
+                  <Select.Value />
+                </Select.Trigger>
+                <Select.Popover>
+                  <ListBox>
+                    {IMAGE_SIZE_OPTIONS.map((option) => (
+                      <ListBox.Item key={option.id}>{option.label}</ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Select.Popover>
               </Select>
             </div>
 
@@ -259,10 +256,9 @@ function Popup() {
             <div className="flex gap-2">
               {currentGeneration?.status === "done" ? (
                 <>
-                  <Tooltip delay={0}>
-                    <TooltipTrigger>
+                  <Tooltip>
+                    <Tooltip.Trigger>
                       <Button
-                        size="sm"
                         variant="bordered"
                         fullWidth
                         onPress={() => currentGeneration.resultUrl && handleDownload(currentGeneration.resultUrl)}
@@ -270,14 +266,13 @@ function Popup() {
                         <Download className="w-4 h-4 mr-1" />
                         下载
                       </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>下载图片</TooltipContent>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content>下载图片</Tooltip.Content>
                   </Tooltip>
-                  <Tooltip delay={0}>
-                    <TooltipTrigger>
+                  <Tooltip>
+                    <Tooltip.Trigger>
                       <Button
-                        size="sm"
-                        color="primary"
+                        variant="solid"
                         fullWidth
                         onPress={() => {
                           // 清空当前生成状态，等待下一次
@@ -287,41 +282,40 @@ function Popup() {
                         <RefreshCw className="w-4 h-4 mr-1" />
                         重置
                       </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>重置，等待下一次生成</TooltipContent>
+                    </Tooltip.Trigger>
+                    <Tooltip.Content>重置，等待下一次生成</Tooltip.Content>
                   </Tooltip>
                 </>
               ) : null}
             </div>
-          </CardBody>
+          </Card.Content>
         </Card>
       )}
 
       {/* Saved Prompt Section */}
       <Card className="shadow-sm">
-        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <Card.Header className="pb-2 flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <ImageIcon className="w-4 h-4 text-default-500" />
             <h2 className="text-xs font-medium text-default-700">最新图片描述</h2>
           </div>
           {savedPrompt && (
-            <Tooltip delay={0}>
-              <TooltipTrigger>
+            <Tooltip>
+              <Tooltip.Trigger>
                 <Button
                   isIconOnly
-                  size="sm"
                   variant="light"
                   color="danger"
                   onPress={handleClearPrompt}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>清除</TooltipContent>
+              </Tooltip.Trigger>
+              <Tooltip.Content>清除</Tooltip.Content>
             </Tooltip>
           )}
-        </CardHeader>
-        <CardBody className="pt-0">
+        </Card.Header>
+        <Card.Content className="pt-0">
           {savedPrompt ? (
             <div className="flex flex-col gap-2">
               <p className="text-xs text-default-600 leading-relaxed">
@@ -339,37 +333,34 @@ function Popup() {
               在任意页面悬停图片并点击分析按钮，即可保存图片描述。
             </p>
           )}
-        </CardBody>
+        </Card.Content>
       </Card>
 
       {/* Generation History Section */}
       <Card className="shadow-sm">
-        <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <Card.Header className="pb-2 flex flex-row items-center justify-between">
           <h2 className="text-xs font-medium text-default-700">生成历史</h2>
           <div className="flex items-center gap-2">
             {history.length > 0 && (
-              <Tooltip delay={0}>
-                <TooltipTrigger>
+              <Tooltip>
+                <Tooltip.Trigger>
                   <Button
                     isIconOnly
-                    size="sm"
                     variant="light"
                     color="danger"
                     onPress={handleClearHistory}
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>清空</TooltipContent>
+                </Tooltip.Trigger>
+                <Tooltip.Content>清空</Tooltip.Content>
               </Tooltip>
             )}
-            <Tooltip delay={0}>
-              <TooltipTrigger>
+            <Tooltip>
+              <Tooltip.Trigger>
                 <Button
                   isIconOnly
-                  size="sm"
                   variant="light"
-                  color="primary"
                   onPress={() => {
                     setShowHistory(!showHistory);
                     if (!showHistory) loadHistory();
@@ -381,15 +372,15 @@ function Popup() {
                     <ChevronDown className="w-4 h-4" />
                   )}
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent>
+              </Tooltip.Trigger>
+              <Tooltip.Content>
                 {showHistory ? "收起" : `展开 (${history.length})`}
-              </TooltipContent>
+              </Tooltip.Content>
             </Tooltip>
           </div>
-        </CardHeader>
+        </Card.Header>
         {showHistory && (
-          <CardBody className="pt-0">
+          <Card.Content className="pt-0">
             <div className="flex flex-col gap-3">
               {history.length === 0 ? (
                 <p className="text-xs text-default-400 italic">
@@ -398,7 +389,7 @@ function Popup() {
               ) : (
                 history.map((item) => (
                   <Card key={item.id} className="shadow-sm overflow-hidden">
-                    <CardBody className="p-0">
+                    <Card.Content className="p-0">
                       <img
                         src={item.imageDataUrl}
                         alt="Generated"
@@ -413,12 +404,12 @@ function Popup() {
                           {item.prompt}
                         </p>
                       </div>
-                    </CardBody>
+                    </Card.Content>
                   </Card>
                 ))
               )}
             </div>
-          </CardBody>
+          </Card.Content>
         )}
       </Card>
     </div>
