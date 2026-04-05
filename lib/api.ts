@@ -18,8 +18,8 @@ const ARK_CONFIG = {
 // API Key 从 chrome.storage.local 读取
 // ====================
 async function getApiKey(): Promise<string> {
-  const result = await browser.storage.local.get("dashscopeApiKey");
-  return (result.dashscopeApiKey as string) ?? "";
+  const result = await browser.storage.local.get("volcArkApiKey");
+  return (result.volcArkApiKey as string) ?? "";
 }
 
 // ====================

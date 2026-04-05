@@ -1,33 +1,11 @@
 import "../../assets/style.css";
 import React, { useEffect, useState, useCallback } from "react";
 import { createRoot } from "react-dom/client";
-import {
-  Button,
-  Input,
-  Card,
-  Tooltip,
-  Select,
-  ListBox,
-  TextArea,
-} from "@heroui/react";
-import {
-  Trash2,
-  ChevronDown,
-  ChevronUp,
-  Save,
-  Check,
-  Image as ImageIcon,
-  Download,
-  RefreshCw,
-  Sparkles,
-} from "lucide-react";
 import type {
   SavedImagePrompt,
   GenerationHistoryItem,
   ExtensionMessage,
   CurrentGeneration,
-  ImageSize,
-  IMAGE_SIZE_OPTIONS,
 } from "../../lib/types";
 
 function Popup() {
@@ -37,30 +15,29 @@ function Popup() {
   const [history, setHistory] = useState<GenerationHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [currentGeneration, setCurrentGeneration] = useState<CurrentGeneration | null>(null);
-  const [selectedSize, setSelectedSize] = useState<ImageSize>("1024x1024");
-  const [editablePrompt, setEditablePrompt] = useState("");
+
+  console.log("🚀 Popup rendering!");
 
   // 加载数据
   useEffect(() => {
     async function loadData() {
+      console.log("📦 Loading data from storage...");
       const [apiResult, promptResult, currentResult] = await Promise.all([
-        browser.storage.local.get("dashscopeApiKey"),
+        browser.storage.local.get("volcArkApiKey"),
         browser.storage.local.get("savedPrompt"),
         browser.storage.local.get("currentGeneration"),
       ]);
-      if (apiResult.dashscopeApiKey) setApiKey(apiResult.dashscopeApiKey as string);
+      console.log("📦 Data loaded:", { apiResult, promptResult, currentResult });
+      if (apiResult.volcArkApiKey) setApiKey(apiResult.volcArkApiKey as string);
       if (promptResult.savedPrompt) setSavedPrompt(promptResult.savedPrompt as SavedImagePrompt);
       if (currentResult.currentGeneration) {
         setCurrentGeneration(currentResult.currentGeneration as CurrentGeneration);
-        if (currentResult.currentGeneration.request) {
-          setEditablePrompt(currentResult.currentGeneration.request.mergedPrompt);
-          setSelectedSize(currentResult.currentGeneration.request.size);
-        }
       }
     }
     loadData();
 
     const listener = (changes: Record<string, browser.storage.StorageChange>) => {
+      console.log("📦 Storage changed:", changes);
       if ("savedPrompt" in changes) {
         setSavedPrompt(changes.savedPrompt.newValue ?? null);
       }
@@ -69,10 +46,6 @@ function Popup() {
       }
       if ("currentGeneration" in changes) {
         setCurrentGeneration(changes.currentGeneration.newValue ?? null);
-        if (changes.currentGeneration.newValue?.request) {
-          setEditablePrompt(changes.currentGeneration.newValue.request.mergedPrompt);
-          setSelectedSize(changes.currentGeneration.newValue.request.size);
-        }
       }
     };
     browser.storage.onChanged.addListener(listener);
@@ -89,7 +62,7 @@ function Popup() {
   }, []);
 
   async function handleSave() {
-    await browser.storage.local.set({ dashscopeApiKey: apiKey });
+    await browser.storage.local.set({ volcArkApiKey: apiKey });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -135,283 +108,225 @@ function Popup() {
   }
 
   return (
-    <div className="w-80 max-h-[600px] p-4 flex flex-col gap-4 overflow-y-auto">
-      <h1 className="text-sm font-medium text-foreground">AI Image Generator</h1>
+    <div style={{ width: "320px", maxHeight: "600px", padding: "16px", overflowY: "auto" }}>
+      <h1 style={{ fontSize: "14px", fontWeight: 500, marginBottom: "16px" }}>AI Image Generator</h1>
 
       {/* API Key Section */}
-      <Card className="shadow-sm">
-        <Card.Header className="pb-2">
-          <p className="text-xs text-default-500">
-            输入火山引擎 ARK API Key。仅保存在本地，仅发送至火山引擎 API。
-          </p>
-        </Card.Header>
-        <Card.Content className="pt-0 flex flex-col gap-3">
-          <Input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="sk-..."
-          />
-          <Button
-            variant="solid"
-            fullWidth
-            onPress={handleSave}
-          >
-            {saved ? (
-              <>
-                <Check className="w-4 h-4 mr-1" />
-                已保存
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-1" />
-                保存 API Key
-              </>
-            )}
-          </Button>
-        </Card.Content>
-      </Card>
+      <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
+        <p style={{ fontSize: "12px", color: "#6b7280", marginBottom: "12px" }}>
+          输入火山引擎 ARK API Key。仅保存在本地，仅发送至火山引擎 API。
+        </p>
+        <input
+          type="password"
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder="api-key-..."
+          style={{
+            width: "100%",
+            padding: "8px 12px",
+            border: "1px solid #d1d5db",
+            borderRadius: "6px",
+            marginBottom: "12px",
+            fontSize: "14px",
+          }}
+        />
+        <button
+          onClick={handleSave}
+          style={{
+            width: "100%",
+            padding: "8px 16px",
+            backgroundColor: saved ? "#10b981" : "#3b82f6",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            fontSize: "14px",
+            cursor: "pointer",
+          }}
+        >
+          {saved ? "✓ 已保存" : "保存 API Key"}
+        </button>
+      </div>
 
       {/* Current Generation Section */}
       {(currentGeneration || savedPrompt) && (
-        <Card className="shadow-sm">
-          <Card.Header className="pb-2 flex flex-row items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <h2 className="text-xs font-medium text-default-700">当前生成</h2>
+        <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
+            <span>✨</span>
+            <span style={{ fontSize: "12px", fontWeight: 500 }}>当前生成</span>
             {currentGeneration && (
-              <span className="text-[10px] text-default-400 ml-auto">
+              <span style={{ fontSize: "10px", color: "#9ca3af", marginLeft: "auto" }}>
                 {getStatusText(currentGeneration.status)}
               </span>
             )}
-          </Card.Header>
-          <Card.Content className="pt-0 flex flex-col gap-3">
-            {/* Prompt 编辑区 */}
-            <div className="flex flex-col gap-1">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-default-400">
-                Prompt
-              </p>
-              <TextArea
-                value={editablePrompt}
-                onChange={(e) => setEditablePrompt(e.target.value)}
-                placeholder="在此输入或编辑 prompt..."
-                rows={3}
-                isDisabled={currentGeneration?.status === "fusing" || currentGeneration?.status === "generating"}
+          </div>
+
+          {/* 结果图片 */}
+          {currentGeneration?.status === "done" && currentGeneration.resultUrl && (
+            <div style={{ marginBottom: "12px" }}>
+              <img
+                src={currentGeneration.resultUrl}
+                alt="Generated"
+                style={{ width: "100%", borderRadius: "8px" }}
               />
             </div>
+          )}
 
-            {/* 尺寸选择 */}
-            <div className="flex flex-col gap-1">
-              <p className="text-[10px] font-medium uppercase tracking-wide text-default-400">
-                图片尺寸
-              </p>
-              <Select
-                selectedKey={selectedSize}
-                onSelectionChange={(key) => setSelectedSize(key as ImageSize)}
-                isDisabled={currentGeneration?.status === "fusing" || currentGeneration?.status === "generating"}
+          {/* 错误信息 */}
+          {currentGeneration?.status === "error" && currentGeneration.error && (
+            <p style={{ fontSize: "12px", color: "#ef4444", backgroundColor: "#fef2f2", padding: "8px", borderRadius: "6px", marginBottom: "12px" }}>
+              {currentGeneration.error}
+            </p>
+          )}
+
+          {/* 操作按钮 */}
+          {currentGeneration?.status === "done" && (
+            <div style={{ display: "flex", gap: "8px" }}>
+              <button
+                onClick={() => currentGeneration.resultUrl && handleDownload(currentGeneration.resultUrl)}
+                style={{
+                  flex: 1,
+                  padding: "8px",
+                  border: "1px solid #d1d5db",
+                  backgroundColor: "white",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
               >
-                <Select.Trigger>
-                  <Select.Value />
-                </Select.Trigger>
-                <Select.Popover>
-                  <ListBox>
-                    {IMAGE_SIZE_OPTIONS.map((option) => (
-                      <ListBox.Item key={option.id}>{option.label}</ListBox.Item>
-                    ))}
-                  </ListBox>
-                </Select.Popover>
-              </Select>
+                下载
+              </button>
+              <button
+                onClick={() => browser.storage.local.remove("currentGeneration")}
+                style={{
+                  flex: 1,
+                  padding: "8px",
+                  border: "none",
+                  backgroundColor: "#3b82f6",
+                  color: "white",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                }}
+              >
+                重置
+              </button>
             </div>
-
-            {/* 进度条（生成中） */}
-            {(currentGeneration?.status === "fusing" || currentGeneration?.status === "generating") && (
-              <div className="flex flex-col gap-1">
-                <div className="h-1 w-full overflow-hidden rounded-full bg-default-100">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all duration-200"
-                    style={{ width: `${Math.min(Math.round(currentGeneration.progress), 100)}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* 错误信息 */}
-            {currentGeneration?.status === "error" && currentGeneration.error && (
-              <p className="text-xs text-danger-600 bg-danger-50 rounded-lg px-2 py-1.5">
-                {currentGeneration.error}
-              </p>
-            )}
-
-            {/* 结果图片 */}
-            {currentGeneration?.status === "done" && currentGeneration.resultUrl && (
-              <div className="overflow-hidden rounded-lg border border-default-200">
-                <img
-                  src={currentGeneration.resultUrl}
-                  alt="Generated"
-                  className="w-full object-cover"
-                />
-              </div>
-            )}
-
-            {/* 操作按钮 */}
-            <div className="flex gap-2">
-              {currentGeneration?.status === "done" ? (
-                <>
-                  <Tooltip>
-                    <Tooltip.Trigger>
-                      <Button
-                        variant="bordered"
-                        fullWidth
-                        onPress={() => currentGeneration.resultUrl && handleDownload(currentGeneration.resultUrl)}
-                      >
-                        <Download className="w-4 h-4 mr-1" />
-                        下载
-                      </Button>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content>下载图片</Tooltip.Content>
-                  </Tooltip>
-                  <Tooltip>
-                    <Tooltip.Trigger>
-                      <Button
-                        variant="solid"
-                        fullWidth
-                        onPress={() => {
-                          // 清空当前生成状态，等待下一次
-                          browser.storage.local.remove("currentGeneration");
-                        }}
-                      >
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        重置
-                      </Button>
-                    </Tooltip.Trigger>
-                    <Tooltip.Content>重置，等待下一次生成</Tooltip.Content>
-                  </Tooltip>
-                </>
-              ) : null}
-            </div>
-          </Card.Content>
-        </Card>
+          )}
+        </div>
       )}
 
       {/* Saved Prompt Section */}
-      <Card className="shadow-sm">
-        <Card.Header className="pb-2 flex flex-row items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ImageIcon className="w-4 h-4 text-default-500" />
-            <h2 className="text-xs font-medium text-default-700">最新图片描述</h2>
+      <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <span>🖼️</span>
+            <span style={{ fontSize: "12px", fontWeight: 500 }}>最新图片描述</span>
           </div>
           {savedPrompt && (
-            <Tooltip>
-              <Tooltip.Trigger>
-                <Button
-                  isIconOnly
-                  variant="light"
-                  color="danger"
-                  onPress={handleClearPrompt}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </Tooltip.Trigger>
-              <Tooltip.Content>清除</Tooltip.Content>
-            </Tooltip>
+            <button
+              onClick={handleClearPrompt}
+              style={{
+                padding: "4px 8px",
+                border: "none",
+                backgroundColor: "#fee2e2",
+                color: "#ef4444",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "12px",
+              }}
+            >
+              清除
+            </button>
           )}
-        </Card.Header>
-        <Card.Content className="pt-0">
-          {savedPrompt ? (
-            <div className="flex flex-col gap-2">
-              <p className="text-xs text-default-600 leading-relaxed">
-                {savedPrompt.prompt}
-              </p>
-              <div className="flex items-center justify-between text-[10px] text-default-400">
-                <span>
-                  {savedPrompt.imageAlt ? `Alt: ${savedPrompt.imageAlt.slice(0, 30)}${savedPrompt.imageAlt.length > 30 ? "…" : ""}` : "无 Alt 文本"}
-                </span>
-                <span>{formatTime(savedPrompt.analyzedAt)}</span>
-              </div>
-            </div>
-          ) : (
-            <p className="text-xs text-default-400 italic">
-              在任意页面悬停图片并点击分析按钮，即可保存图片描述。
+        </div>
+
+        {savedPrompt ? (
+          <div>
+            <p style={{ fontSize: "12px", color: "#4b5563", lineHeight: 1.5, marginBottom: "8px" }}>
+              {savedPrompt.prompt}
             </p>
-          )}
-        </Card.Content>
-      </Card>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#9ca3af" }}>
+              <span>
+                {savedPrompt.imageAlt ? `Alt: ${savedPrompt.imageAlt.slice(0, 30)}${savedPrompt.imageAlt.length > 30 ? "…" : ""}` : "无 Alt 文本"}
+              </span>
+              <span>{formatTime(savedPrompt.analyzedAt)}</span>
+            </div>
+          </div>
+        ) : (
+          <p style={{ fontSize: "12px", color: "#9ca3af", fontStyle: "italic" }}>
+            在任意页面悬停图片并点击分析按钮，即可保存图片描述。
+          </p>
+        )}
+      </div>
 
       {/* Generation History Section */}
-      <Card className="shadow-sm">
-        <Card.Header className="pb-2 flex flex-row items-center justify-between">
-          <h2 className="text-xs font-medium text-default-700">生成历史</h2>
-          <div className="flex items-center gap-2">
+      <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+          <span style={{ fontSize: "12px", fontWeight: 500 }}>生成历史</span>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             {history.length > 0 && (
-              <Tooltip>
-                <Tooltip.Trigger>
-                  <Button
-                    isIconOnly
-                    variant="light"
-                    color="danger"
-                    onPress={handleClearHistory}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </Tooltip.Trigger>
-                <Tooltip.Content>清空</Tooltip.Content>
-              </Tooltip>
+              <button
+                onClick={handleClearHistory}
+                style={{
+                  padding: "4px 8px",
+                  border: "none",
+                  backgroundColor: "#fee2e2",
+                  color: "#ef4444",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                }}
+              >
+                清空
+              </button>
             )}
-            <Tooltip>
-              <Tooltip.Trigger>
-                <Button
-                  isIconOnly
-                  variant="light"
-                  onPress={() => {
-                    setShowHistory(!showHistory);
-                    if (!showHistory) loadHistory();
-                  }}
-                >
-                  {showHistory ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </Button>
-              </Tooltip.Trigger>
-              <Tooltip.Content>
-                {showHistory ? "收起" : `展开 (${history.length})`}
-              </Tooltip.Content>
-            </Tooltip>
+            <button
+              onClick={() => {
+                setShowHistory(!showHistory);
+                if (!showHistory) loadHistory();
+              }}
+              style={{
+                padding: "4px 8px",
+                border: "none",
+                backgroundColor: "#eff6ff",
+                color: "#3b82f6",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "12px",
+              }}
+            >
+              {showHistory ? "收起" : `展开 (${history.length})`}
+            </button>
           </div>
-        </Card.Header>
+        </div>
+
         {showHistory && (
-          <Card.Content className="pt-0">
-            <div className="flex flex-col gap-3">
-              {history.length === 0 ? (
-                <p className="text-xs text-default-400 italic">
-                  暂无生成历史。
-                </p>
-              ) : (
-                history.map((item) => (
-                  <Card key={item.id} className="shadow-sm overflow-hidden">
-                    <Card.Content className="p-0">
-                      <img
-                        src={item.imageDataUrl}
-                        alt="Generated"
-                        className="w-full h-32 object-cover cursor-pointer hover:opacity-90 transition"
-                        onClick={() => handleDownload(item.imageDataUrl)}
-                      />
-                      <div className="p-2 flex flex-col gap-1">
-                        <p className="text-[10px] text-default-400">
-                          {item.size} · {formatTime(item.createdAt)}
-                        </p>
-                        <p className="text-xs text-default-600 line-clamp-2 leading-relaxed">
-                          {item.prompt}
-                        </p>
-                      </div>
-                    </Card.Content>
-                  </Card>
-                ))
-              )}
-            </div>
-          </Card.Content>
+          <div>
+            {history.length === 0 ? (
+              <p style={{ fontSize: "12px", color: "#9ca3af", fontStyle: "italic" }}>
+                暂无生成历史。
+              </p>
+            ) : (
+              history.map((item) => (
+                <div key={item.id} style={{ border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden", marginBottom: "12px" }}>
+                  <img
+                    src={item.imageDataUrl}
+                    alt="Generated"
+                    style={{ width: "100%", height: "128px", objectFit: "cover", cursor: "pointer" }}
+                    onClick={() => handleDownload(item.imageDataUrl)}
+                  />
+                  <div style={{ padding: "8px" }}>
+                    <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "4px" }}>
+                      {item.size} · {formatTime(item.createdAt)}
+                    </p>
+                    <p style={{ fontSize: "12px", color: "#4b5563", margin: 0, lineHeight: 1.4 }}>
+                      {item.prompt}
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

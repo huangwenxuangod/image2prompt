@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect } from "react";
 import {
   useFloating,
   offset,
@@ -6,7 +6,6 @@ import {
   shift,
   autoUpdate,
 } from "@floating-ui/react";
-import { Button, Tooltip } from "@heroui/react";
 import { Plus, X } from "lucide-react";
 import type { TextSelection } from "../../../lib/types";
 
@@ -17,6 +16,8 @@ interface Props {
 }
 
 export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
+  console.log("🎨 SelectionToolbar rendering!", selection);
+
   // 虚拟元素：reference = 鼠标松开时的坐标点（宽高为 0）
   // placement="top-start" → 工具栏左边缘对齐指针 X，显示在指针上方
   const virtualReference = useMemo(
@@ -48,11 +49,6 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
     whileElementsMounted: autoUpdate,
   });
 
-  const preview =
-    selection.text.length > 22
-      ? selection.text.slice(0, 22) + "…"
-      : selection.text;
-
   return (
     <div
       ref={refs.setFloating}
@@ -60,47 +56,34 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
       className="z-[2147483647]"
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <div className="flex items-center gap-0 rounded-lg border border-default-200 bg-background shadow-md overflow-hidden">
-        {/* 选中文字预览 */}
-        <span className="max-w-[160px] truncate px-3 py-1.5 text-default-600 text-xs">
-          {preview}
-        </span>
+      {/* 2026 极简工具栏：白色背景 + 细边框 + 微阴影 + 12px 圆角 */}
+      <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white shadow-sm p-2">
+        {/* 生成按钮 - 40x40px，透明背景，悬停变浅灰 */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onGenerate();
+          }}
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+          title="生成图片"
+        >
+          <Plus className="w-[18px] h-[18px]" />
+        </button>
 
-        {/* 分隔线 */}
-        <div className="h-5 w-px bg-default-200" />
+        {/* 分隔线 - 极细 */}
+        <div className="w-px h-8 bg-gray-200" />
 
-        {/* 生成按钮 */}
-        <Tooltip>
-          <Tooltip.Trigger>
-            <Button
-              variant="light"
-              color="primary"
-              onPress={(e) => {
-                e.stopPropagation();
-                onGenerate();
-              }}
-            >
-              <Plus className="w-4 h-4" />
-            </Button>
-          </Tooltip.Trigger>
-          <Tooltip.Content>生成图片</Tooltip.Content>
-        </Tooltip>
-
-        {/* 关闭按钮 */}
-        <Tooltip>
-          <Tooltip.Trigger>
-            <Button
-              variant="light"
-              onPress={(e) => {
-                e.stopPropagation();
-                onDismiss();
-              }}
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </Tooltip.Trigger>
-          <Tooltip.Content>关闭</Tooltip.Content>
-        </Tooltip>
+        {/* 关闭按钮 - 40x40px，透明背景，悬停变浅灰 */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDismiss();
+          }}
+          className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+          title="关闭"
+        >
+          <X className="w-[18px] h-[18px]" />
+        </button>
       </div>
     </div>
   );

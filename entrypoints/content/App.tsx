@@ -7,15 +7,16 @@ import { SelectionToolbar } from "./components/SelectionToolbar";
 import type { SavedImagePrompt, ExtensionMessage, ImageSize } from "../../lib/types";
 
 export default function App() {
-  console.log('🚀 App component rendering!');
+  console.log("🚀 Content App rendering!");
 
   // 防止图片图标悬停时触发 hover 消失
   const buttonHovered = useRef(false);
 
   const hoveredImage = useImageHover(buttonHovered);
-  console.log('🖼️ hoveredImage state:', hoveredImage);
 
   const { selection, clearSelection } = useTextSelection();
+  console.log("🎯 Selection state:", selection);
+
   const { savedPrompt, savePrompt } = useSavedPrompt();
 
   // 已分析过的图片 src（用于显示绿色勾，session 内有效）
@@ -57,6 +58,7 @@ export default function App() {
       {/* 链路 A：图片分析图标 */}
       {hoveredImage && (
         <ImageAnalyzeButton
+          key={hoveredImage.src}
           image={hoveredImage}
           analyzedImages={analyzedImages}
           onAnalyzed={handleAnalyzed}

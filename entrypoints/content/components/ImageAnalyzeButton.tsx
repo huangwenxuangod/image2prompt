@@ -34,6 +34,14 @@ export function ImageAnalyzeButton({
   const [errorMsg, setErrorMsg] = useState("");
   const [virtualEl, setVirtualEl] = useState<any>(null);
 
+  console.log("🎨 ImageAnalyzeButton rendering!", { image, status });
+
+  // 当图片变化时重置状态
+  useEffect(() => {
+    setStatus(analyzedImages.has(image.src) ? "done" : "idle");
+    setErrorMsg("");
+  }, [image.src, analyzedImages]);
+
   // 实时更新虚拟元素位置
   useEffect(() => {
     const updateVirtualEl = () => {
@@ -64,13 +72,13 @@ export function ImageAnalyzeButton({
     };
   }, [image]);
 
-  // Floating UI 定位：bottom-end + offset 把按钮拉回图片内部
+  // Floating UI 定位：bottom-end + offset(-40, -20) 把按钮拉回图片内部
   const { refs, floatingStyles } = useFloating({
     elements: { reference: virtualEl },
     strategy: "fixed",
     placement: "bottom-end",
     middleware: [
-      offset({ mainAxis: -40, crossAxis: -20 }), // 向左20px，向上40px
+      offset({ mainAxis: -48, crossAxis: -20 }), // 向左20px，向上48px，按钮进入图片内部
       flip(),
       shift({ padding: 4 }),
     ],
@@ -114,16 +122,16 @@ export function ImageAnalyzeButton({
   }
 
   const getIcon = () => {
-    if (status === "loading") return <Loader2 className="w-4 h-4 animate-spin" />;
-    if (status === "done") return <Check className="w-4 h-4" />;
-    if (status === "error") return <AlertCircle className="w-4 h-4" />;
-    return <Wand2 className="w-4 h-4" />;
+    if (status === "loading") return <Loader2 className="w-[18px] h-[18px] animate-spin" />;
+    if (status === "done") return <Check className="w-[18px] h-[18px]" />;
+    if (status === "error") return <AlertCircle className="w-[18px] h-[18px]" />;
+    return <Wand2 className="w-[18px] h-[18px]" />;
   };
 
-  const getButtonColor = () => {
-    if (status === "done") return "#10b981"; // green-500
-    if (status === "error") return "#ef4444"; // red-500
-    return "#3b82f6"; // blue-500
+  const getButtonStyle = () => {
+    if (status === "done") return "bg-emerald-500 text-white";
+    if (status === "error") return "bg-red-500 text-white";
+    return "bg-white text-gray-700 hover:bg-gray-100 border border-gray-200";
   };
 
   return (
@@ -134,23 +142,11 @@ export function ImageAnalyzeButton({
       onMouseLeave={onMouseLeaveButton}
       className="z-[2147483647]"
     >
+      {/* 2026 极简按钮：40x40px，10px 圆角，微阴影 */}
       <button
         onClick={handleClick}
         title={status === "done" ? "已分析 — 点击重新分析" : status === "error" ? errorMsg : "使用豆包视觉模型分析图片"}
-        style={{
-          width: "32px",
-          height: "32px",
-          borderRadius: "9999px",
-          border: "none",
-          backgroundColor: getButtonColor(),
-          color: "white",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-          pointerEvents: "auto",
-        }}
+        className={`w-10 h-10 flex items-center justify-center rounded-xl shadow-sm transition-colors ${getButtonStyle()}`}
         disabled={status === "loading"}
       >
         {getIcon()}
