@@ -62,8 +62,8 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
       className="z-[2147483647]"
       onMouseDown={(e) => e.stopPropagation()}
     >
-      {/* 2026 极简工具栏：白色背景 + 细边框 + 微阴影 + 16px 圆角，更扁平 */}
-      <div className="flex items-center gap-1 rounded-2xl border border-gray-200 bg-white shadow-sm p-1 relative">
+      {/* 2026 极简工具栏：白色背景 + 细边框 + 微阴影 + 15px 圆角，更扁平 */}
+      <div className="flex items-center gap-1 rounded-[15px] border border-gray-200 bg-white shadow-sm p-1.5 relative">
         {/* 尺寸选择下拉 */}
         <div className="relative">
           <button
@@ -71,15 +71,15 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
               e.stopPropagation();
               setShowSizeDropdown(!showSizeDropdown);
             }}
-            className="flex items-center gap-1 h-8 px-3 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors text-xs font-medium"
+            className="flex items-center gap-1 h-7 px-3 rounded-[12px] text-gray-700 hover:bg-gray-100 transition-colors text-xs font-medium"
           >
             {selectedSizeLabel}
             <ChevronDown className="w-3 h-3" />
           </button>
 
-          {/* 下拉菜单 */}
+          {/* 下拉菜单 - 向下展开 */}
           {showSizeDropdown && (
-            <div className="absolute bottom-full left-0 mb-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+            <div className="absolute top-full left-0 mt-1 bg-white border border-gray-200 rounded-[12px] shadow-lg overflow-hidden">
               {IMAGE_SIZE_OPTIONS.map((option) => (
                 <button
                   key={option.id}
@@ -88,7 +88,7 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
                     setSelectedSize(option.id);
                     setShowSizeDropdown(false);
                   }}
-                  className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-100 transition-colors ${
+                  className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-100 transition-colors first:rounded-t-[11px] last:rounded-b-[11px] ${
                     selectedSize === option.id ? "bg-blue-50 text-blue-600" : "text-gray-700"
                   }`}
                 >
@@ -100,33 +100,33 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
         </div>
 
         {/* 分隔线 - 极细 */}
-        <div className="w-px h-6 bg-gray-200" />
+        <div className="w-px h-5 bg-gray-200" />
 
-        {/* 生成按钮 - 32x32px，透明背景，悬停变浅灰 */}
+        {/* 生成按钮 - 28x28px，透明背景，悬停变浅灰 */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onGenerate(selectedSize);
           }}
-          className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-700 hover:bg-gray-100 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded-[12px] text-gray-700 hover:bg-gray-100 transition-colors"
           title="生成图片"
         >
-          <Plus className="w-[16px] h-[16px]" />
+          <Plus className="w-[15px] h-[15px]" />
         </button>
 
         {/* 分隔线 - 极细 */}
-        <div className="w-px h-6 bg-gray-200" />
+        <div className="w-px h-5 bg-gray-200" />
 
-        {/* 关闭按钮 - 32x32px，透明背景，悬停变浅灰 */}
+        {/* 关闭按钮 - 28x28px，透明背景，悬停变浅灰 */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDismiss();
           }}
-          className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-700 hover:bg-gray-100 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded-[12px] text-gray-700 hover:bg-gray-100 transition-colors"
           title="关闭"
         >
-          <X className="w-[16px] h-[16px]" />
+          <X className="w-[15px] h-[15px]" />
         </button>
       </div>
     </div>

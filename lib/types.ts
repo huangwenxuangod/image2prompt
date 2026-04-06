@@ -27,14 +27,13 @@ export interface TextSelection {
   y: number;             // 鼠标松开时的 clientY
 }
 
-// 图片尺寸类型
+// 图片尺寸类型（Seedream 要求：宽×高 ≥ 921600）
 export type ImageSize =
   | "1024x1024"
-  | "1280x960"
+  | "1600x640"
   | "1280x720"
   | "720x1280"
-  | "1152x768"
-  | "1280x512";
+  | "1200x800";
 
 // 图片尺寸选项配置
 export interface ImageSizeOption {
@@ -46,11 +45,11 @@ export interface ImageSizeOption {
 }
 
 export const IMAGE_SIZE_OPTIONS: ImageSizeOption[] = [
-  { id: "1024x1024", label: "1:1 方形", width: 1024, height: 1024, default: true },
-  { id: "1280x512", label: "5:2 文章封面", width: 1280, height: 512 },
+  { id: "1024x1024", label: "1:1 方形", width: 1024, height: 1024 },
+  { id: "1600x640", label: "5:2 文章封面", width: 1600, height: 640, default: true },
   { id: "1280x720", label: "16:9 宽屏", width: 1280, height: 720 },
   { id: "720x1280", label: "9:16 竖版", width: 720, height: 1280 },
-  { id: "1152x768", label: "3:2 摄影比", width: 1152, height: 768 },
+  { id: "1200x800", label: "3:2 摄影比", width: 1200, height: 800 },
 ];
 
 // 发送给图像生成 API 的请求体
