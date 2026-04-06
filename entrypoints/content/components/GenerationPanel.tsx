@@ -211,16 +211,11 @@ export function GenerationPanel({ selection, savedPrompt, onClose }: Props) {
             </Select>
           </div>
 
-          {/* 进度条（生成中显示）*/}
+          {/* 旋转 Loading（生成中显示）*/}
           {(status === "fusing" || status === "generating") && (
-            <div className="flex flex-col gap-1">
-              <div className="h-1 w-full overflow-hidden rounded-full bg-default-100">
-                <div
-                  className="h-full rounded-full bg-primary transition-all duration-200"
-                  style={{ width: `${Math.min(Math.round(progress), 100)}%` }}
-                />
-              </div>
-              <p className="text-[10px] text-default-400">
+            <div className="flex flex-col items-center gap-2 py-2">
+              <div className="w-8 h-8 border-3 border-default-200 border-t-primary rounded-full animate-spin" />
+              <p className="text-xs text-default-500">
                 {status === "fusing" ? "优化 prompt 中…" : "生成图片中…"}
               </p>
             </div>

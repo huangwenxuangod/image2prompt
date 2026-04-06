@@ -34,18 +34,17 @@ export default function App() {
     [savePrompt]
   );
 
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = useCallback(async (size: ImageSize) => {
     if (!selection) return;
 
     // 发送消息给 background 开始生成
-    const defaultSize: ImageSize = "1024x1024";
-
     await browser.runtime.sendMessage({
       type: "START_GENERATION",
       request: {
         imagePrompt: savedPrompt?.prompt ?? null,
+        styleAnalysis: savedPrompt?.styleAnalysis ?? null,
         textContext: selection.text,
-        size: defaultSize,
+        size,
       },
     } satisfies ExtensionMessage);
 

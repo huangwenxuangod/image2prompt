@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import {
   useFloating,
   offset,
@@ -6,17 +6,21 @@ import {
   shift,
   autoUpdate,
 } from "@floating-ui/react";
-import { Plus, X } from "lucide-react";
-import type { TextSelection } from "../../../lib/types";
+import { Plus, X, ChevronDown } from "lucide-react";
+import type { TextSelection, ImageSize } from "../../../lib/types";
+import { IMAGE_SIZE_OPTIONS } from "../../../lib/types";
 
 interface Props {
   selection: TextSelection;
-  onGenerate: () => void;
+  onGenerate: (size: ImageSize) => void;
   onDismiss: () => void;
 }
 
 export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
   console.log("🎨 SelectionToolbar rendering!", selection);
+
+  const [selectedSize, setSelectedSize] = useState<ImageSize>("1280x512");
+  const [showSizeDropdown, setShowSizeDropdown] = useState(false);
 
   // 虚拟元素：reference = 鼠标松开时的坐标点（宽高为 0）
   // placement="top-start" → 工具栏左边缘对齐指针 X，显示在指针上方
@@ -49,6 +53,8 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
     whileElementsMounted: autoUpdate,
   });
 
+  const selectedSizeLabel = IMAGE_SIZE_OPTIONS.find((opt) => opt.id === selectedSize)?.label || "尺寸";
+
   return (
     <div
       ref={refs.setFloating}
@@ -56,33 +62,71 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
       className="z-[2147483647]"
       onMouseDown={(e) => e.stopPropagation()}
     >
-      {/* 2026 极简工具栏：白色背景 + 细边框 + 微阴影 + 12px 圆角 */}
-      <div className="flex items-center gap-1 rounded-xl border border-gray-200 bg-white shadow-sm p-2">
-        {/* 生成按钮 - 40x40px，透明背景，悬停变浅灰 */}
+      {/* 2026 极简工具栏：白色背景 + 细边框 + 微阴影 + 16px 圆角，更扁平 */}
+      <div className="flex items-center gap-1 rounded-2xl border border-gray-200 bg-white shadow-sm p-1 relative">
+        {/* 尺寸选择下拉 */}
+        <div className="relative">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowSizeDropdown(!showSizeDropdown);
+            }}
+            className="flex items-center gap-1 h-8 px-3 rounded-xl text-gray-700 hover:bg-gray-100 transition-colors text-xs font-medium"
+          >
+            {selectedSizeLabel}
+            <ChevronDown className="w-3 h-3" />
+          </button>
+
+          {/* 下拉菜单 */}
+          {showSizeDropdown && (
+            <div className="absolute bottom-full left-0 mb-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+              {IMAGE_SIZE_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedSize(option.id);
+                    setShowSizeDropdown(false);
+                  }}
+                  className={`block w-full text-left px-3 py-2 text-xs hover:bg-gray-100 transition-colors ${
+                    selectedSize === option.id ? "bg-blue-50 text-blue-600" : "text-gray-700"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 分隔线 - 极细 */}
+        <div className="w-px h-6 bg-gray-200" />
+
+        {/* 生成按钮 - 32x32px，透明背景，悬停变浅灰 */}
         <button
           onClick={(e) => {
             e.stopPropagation();
-            onGenerate();
+            onGenerate(selectedSize);
           }}
-          className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-700 hover:bg-gray-100 transition-colors"
           title="生成图片"
         >
-          <Plus className="w-[18px] h-[18px]" />
+          <Plus className="w-[16px] h-[16px]" />
         </button>
 
         {/* 分隔线 - 极细 */}
-        <div className="w-px h-8 bg-gray-200" />
+        <div className="w-px h-6 bg-gray-200" />
 
-        {/* 关闭按钮 - 40x40px，透明背景，悬停变浅灰 */}
+        {/* 关闭按钮 - 32x32px，透明背景，悬停变浅灰 */}
         <button
           onClick={(e) => {
             e.stopPropagation();
             onDismiss();
           }}
-          className="w-10 h-10 flex items-center justify-center rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-xl text-gray-700 hover:bg-gray-100 transition-colors"
           title="关闭"
         >
-          <X className="w-[18px] h-[18px]" />
+          <X className="w-[16px] h-[16px]" />
         </button>
       </div>
     </div>

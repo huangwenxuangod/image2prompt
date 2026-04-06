@@ -8,8 +8,8 @@
 ## 角色设定
 
 你是一名专注于浏览器扩展开发的高级全栈工程师，精通 WXT、React 19、TypeScript、
-Floating UI 和 HeroUI v3。你写的代码要求：类型安全（无 any）、运行时零报错、
-Shadow DOM 隔离彻底、UI 组件符合 HeroUI v3 compound 模式。
+Floating UI。你写的代码要求：类型安全（无 any）、运行时零报错、
+Shadow DOM 隔离彻底、UI 组件使用 2026 极简设计语言（黑白色系 + 圆角 + 微阴影）。
 
 ---
 
@@ -18,7 +18,7 @@ Shadow DOM 隔离彻底、UI 组件符合 HeroUI v3 compound 模式。
 ```
 运行时:   Bun 1.x（所有命令用 bun / bunx，禁止使用 npm / yarn）
 框架:     WXT 0.20.x + @wxt-dev/module-react 1.2.x
-UI 库:    React 19 + HeroUI v3.0.x（@heroui/react@^3.0.1）
+UI 库:    React 19 + Tailwind CSS v4（无 HeroUI，使用原生 HTML + Tailwind）
 图标:     lucide-react ^1.7.0
 样式:     Tailwind CSS v4 + @tailwindcss/vite（无 tailwind.config.js，v4 不需要）
 变体:     tailwind-variants 3.x（tv()）
@@ -127,12 +127,14 @@ bun run zip
 - 图标只在悬停时显示，离开后隐藏（已分析的图片保持绿色勾常显）
 - 图片尺寸判断使用 `naturalWidth/naturalHeight`（适配 CSS 缩放的图片）
 - 忽略小于 60×60 的图片
+- **多维度风格分析**：分析包含 8 个维度（backgroundMaterial、subjectStyle、elementStyle、composition、colorTreatment、styleDNA、vibeMood、lighting）
 
 ### 划词生成（链路 B）
 - 工具栏用 Floating UI 虚拟元素定位（reference = 指针坐标点，非 selection range）
 - `placement: "top-start"` 使工具栏左边缘对齐指针 X 坐标
 - 点击工具栏外部或按 Escape 关闭
 - 若用户重新划词，面板重置（不累加）
+- **风格优先生成**：使用风格分析结果作为主要约束，划词内容作为创作主题
 
 ### 当前生成状态
 - 使用 `currentGeneration` 键存储在 `chrome.storage.local`
@@ -165,25 +167,41 @@ bun run zip
 
 ## 类型定义
 
+### ImageStyleAnalysis 接口（多维度风格分析）
+```typescript
+export interface ImageStyleAnalysis {
+  backgroundMaterial: string;  // 背景材质与质感
+  subjectStyle: string;        // 人物/主体渲染风格
+  elementStyle: string;        // 周围元素风格
+  composition: string;         // 构图结构
+  colorTreatment: string;      // 色彩处理
+  styleDNA: string;            // 风格 DNA（最重要）
+  vibeMood: string;           // 整体氛围/情绪
+  lighting: string;            // 光照风格
+}
+```
+
 ### SavedImagePrompt 接口
 ```typescript
 export interface SavedImagePrompt {
-  prompt: string;       // 视觉模型生成的描述
-  imageUrl: string;     // 原图 URL
-  imageAlt: string;     // 原图 alt 文字（辅助上下文）
-  analyzedAt: number;   // Unix ms 时间戳
-  sourceUrl: string;    // 来源页面 URL
+  prompt: string;                         // 兼容旧格式：原始描述
+  styleAnalysis: ImageStyleAnalysis | null;  // 新格式：结构化风格分析
+  imageUrl: string;                       // 原图 URL
+  imageAlt: string;                       // 原图 alt 文字（辅助上下文）
+  analyzedAt: number;                     // Unix ms 时间戳
+  sourceUrl: string;                      // 来源页面 URL
 }
 ```
 
 ### GenerationRequest 接口
 ```typescript
 export interface GenerationRequest {
-  imagePrompt: string | null;  // savedPrompt.prompt，可能为空
-  textContext: string;          // 用户选中的文字
-  mergedPrompt: string;         // 合并后发给 promptFuse 的原始 prompt
-  finalPrompt: string;          // 经过 fusePrompt 优化后的最终 prompt
-  size: ImageSize;              // 图像尺寸
+  imagePrompt: string | null;           // 兼容旧格式
+  styleAnalysis: ImageStyleAnalysis | null; // 新格式：结构化风格分析
+  textContext: string;                   // 用户选中的文字
+  mergedPrompt: string;                  // 合并后发给 promptFuse 的原始 prompt
+  finalPrompt: string;                   // 经过 fusePrompt 优化后的最终 prompt
+  size: ImageSize;                       // 图像尺寸
 }
 ```
 
@@ -256,6 +274,19 @@ export interface TextSelection {
 
 ## 已实现的增强功能
 
+### 多维度风格分析（核心功能）
+- **ImageStyleAnalysis 接口**：8 个风格维度（backgroundMaterial、subjectStyle、elementStyle、composition、colorTreatment、styleDNA、vibeMood、lighting）
+- **analyzeImageWithVision() 升级**：使用豆包视觉模型分析图片风格，输出结构化 JSON
+- **fusePrompt() 升级**：接受风格分析 + 文字内容，风格约束优先
+- **Popup 展示优化**：风格 DNA 高亮显示，各维度分栏展示
+- **向后兼容**：保留旧格式 prompt 字段，平滑迁移
+
+### 2026 极简 UI 设计（移除 HeroUI）
+- **设计语言**：黑白色系 + 圆角（12px）+ 微阴影
+- **ImageAnalyzeButton**：原生 button + Tailwind CSS，40x40px，10px 圆角
+- **SelectionToolbar**：白色背景 + 浅灰边框 + 柔和阴影，40x40px 按钮
+- **Popup**：纯原生 HTML + inline styles，无依赖，兼容性最佳
+
 ### Popup 页面增强
 - **当前生成实时管理**：
   - 显示当前生成状态（fusing/generating/done/error）
@@ -266,6 +297,10 @@ export interface TextSelection {
   - 结果图片预览
   - 下载图片按钮
   - 重置生成状态功能
+- **风格分析展示**：
+  - 风格 DNA 蓝色高亮卡片
+  - 8 个维度分两栏展示
+  - 兼容旧格式 fallback
 - 显示最新保存的 image prompt
 - 支持清除已保存的 prompt
 - 显示分析时间和图片 alt 文本
@@ -273,23 +308,25 @@ export interface TextSelection {
 - 支持清空生成历史
 - 点击历史图片可下载
 
-### SelectionToolbar 增强
-- 使用 HeroUI Tooltip 组件显示按钮提示
-- 使用 Lucide React 图标（Plus、X）
-- 更简洁的图标按钮设计
-
-### GenerationPanel 增强
-- 可编辑的最终 prompt 文本框
-- 多种图片尺寸选择下拉框
-- 两阶段状态：fusing（优化 prompt）→ generating（生成图片）
-- 进度条显示
+### SelectionToolbar 优化
+- 原生 HTML button + Tailwind CSS
+- Lucide React 图标（Plus、X）
+- Floating UI 虚拟元素定位
+- 极简工具栏设计：白色背景 + 细边框 + 微阴影
 
 ### ImageAnalyzeButton 优化
-- 使用原生 button 组件替代 HeroUI Button（Shadow DOM 兼容性）
+- 使用原生 button 组件 + Tailwind CSS（Shadow DOM 兼容性）
+- **2026 极简设计**：40x40px，10px 圆角，微阴影
+- **按钮样式**：
+  - 默认：白色背景 + 灰色边框（`bg-white border border-gray-200`）
+  - 已分析：翡翠绿（`bg-emerald-500 text-white`）
+  - 错误：红色（`bg-red-500 text-white`）
+- 图标尺寸：18px
 - 动态更新虚拟元素位置（监听 scroll/resize）
 - 使用 `naturalWidth/naturalHeight` 判断图片尺寸（适配 CSS 缩放图片）
-- 按钮定位优化：使用 `offset({ mainAxis: -40, crossAxis: -20 })` 放置在图片内部右下角
-- 添加调试日志（console.log）
+- 按钮定位优化：使用 `offset({ mainAxis: -48, crossAxis: -20 })` 放置在图片内部右下角
+- 添加 `useEffect` 监听 `image.src` 变化，自动重置状态
+- App.tsx 中添加 `key={hoveredImage.src}` 确保图片切换时重新挂载组件
 
 ### 按钮悬停逻辑优化
 - `useImageHover` 接收 `buttonHoveredRef` 参数
@@ -301,11 +338,3 @@ export interface TextSelection {
 - 图像生成：`generateImage()` 使用 Seedream 4.0
 - 历史管理：`saveToHistory()`、`getGenerationHistory()`、`clearGenerationHistory()`
 - 所有 API 请求添加 `mode: "cors"` 和 `credentials: "omit"`
-
-### HeroUI v3 全面升级
-- 所有组件迁移到 HeroUI v3 compound 模式
-- Card 组件使用 `Card.Header`/`Card.Content`/`Card.Footer`
-- Tooltip 组件使用 `Tooltip.Trigger`/`Tooltip.Content`
-- Select 组件使用 `Select.Trigger`/`Select.Value`/`Select.Popover`/`ListBox`
-- 移除了过时的 CardHeader/CardBody/Divider/SelectItem/Textarea 等导入
-- 所有 Button、Input、TextArea 组件使用 v3 API

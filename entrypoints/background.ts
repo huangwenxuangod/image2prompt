@@ -32,7 +32,7 @@ export default defineBackground(() => {
       // --- 图片分析 ---
       if (message.type === "ANALYZE_IMAGE") {
         analyzeImageWithVision(message.imageUrl, message.imageAlt)
-          .then((prompt) => sendResponse({ type: "ANALYZE_IMAGE_RESULT", prompt }))
+          .then((result) => sendResponse({ type: "ANALYZE_IMAGE_RESULT", prompt: result.prompt, styleAnalysis: result.styleAnalysis }))
           .catch((err) =>
             sendResponse({ type: "ANALYZE_IMAGE_ERROR", error: String(err) })
           );
@@ -48,14 +48,11 @@ export default defineBackground(() => {
             const savedPrompt = savedPromptResult.savedPrompt as SavedImagePrompt | null;
 
             // 2. 构建初始 request
-            const mergedPrompt = [savedPrompt?.prompt, message.request.textContext]
-              .filter(Boolean)
-              .join("\n\n");
-
             const request: GenerationRequest = {
               ...message.request,
-              mergedPrompt,
-              finalPrompt: mergedPrompt, // 初始值，后续会被 fuse 优化
+              styleAnalysis: savedPrompt?.styleAnalysis ?? null,
+              mergedPrompt: "", // 会在下面填充
+              finalPrompt: "",  // 会在 fuse 后填充
             };
 
             // 3. 初始化当前生成状态
@@ -84,8 +81,12 @@ export default defineBackground(() => {
             // 5. 异步执行完整生成流程
             (async () => {
               try {
-                // 步骤 1: Fuse prompt
-                const finalPrompt = await fusePrompt(mergedPrompt);
+                // 步骤 1: Fuse prompt - 使用风格分析 + 文字内容
+                const finalPrompt = await fusePrompt(
+                  savedPrompt?.styleAnalysis ?? null,
+                  message.request.textContext
+                );
+                request.mergedPrompt = finalPrompt;
                 request.finalPrompt = finalPrompt;
 
                 // 更新状态为生成中

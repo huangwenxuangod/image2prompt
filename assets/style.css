@@ -1,2 +1,12 @@
 @import "tailwindcss";
 @import "@heroui/styles";
+
+/* 旋转 Loading 动画 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

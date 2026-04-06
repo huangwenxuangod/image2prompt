@@ -103,6 +103,7 @@ export function ImageAnalyzeButton({
       if (response.type === "ANALYZE_IMAGE_RESULT") {
         const data: SavedImagePrompt = {
           prompt: response.prompt,
+          styleAnalysis: response.styleAnalysis,
           imageUrl: image.src,
           imageAlt: image.alt,
           analyzedAt: Date.now(),

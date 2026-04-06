@@ -8,6 +8,16 @@ import type {
   CurrentGeneration,
 } from "../../lib/types";
 
+// 添加 spin 动画
+const SpinStyle = () => (
+  <style>{`
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+  `}</style>
+);
+
 function Popup() {
   const [apiKey, setApiKey] = useState("");
   const [saved, setSaved] = useState(false);
@@ -108,7 +118,9 @@ function Popup() {
   }
 
   return (
-    <div style={{ width: "320px", maxHeight: "600px", padding: "16px", overflowY: "auto" }}>
+    <>
+      <SpinStyle />
+      <div style={{ width: "320px", maxHeight: "600px", padding: "16px", overflowY: "auto" }}>
       <h1 style={{ fontSize: "14px", fontWeight: 500, marginBottom: "16px" }}>AI Image Generator</h1>
 
       {/* API Key Section */}
@@ -159,6 +171,25 @@ function Popup() {
               </span>
             )}
           </div>
+
+          {/* 旋转 Loading（生成中）*/}
+          {(currentGeneration?.status === "fusing" || currentGeneration?.status === "generating") && (
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", padding: "16px 0" }}>
+              <div
+                style={{
+                  width: "32px",
+                  height: "32px",
+                  border: "3px solid #e5e7eb",
+                  borderTopColor: "#3b82f6",
+                  borderRadius: "9999px",
+                  animation: "spin 1s linear infinite",
+                }}
+              />
+              <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>
+                {currentGeneration.status === "fusing" ? "优化 prompt 中…" : "生成图片中…"}
+              </p>
+            </div>
+          )}
 
           {/* 结果图片 */}
           {currentGeneration?.status === "done" && currentGeneration.resultUrl && (
@@ -240,9 +271,67 @@ function Popup() {
 
         {savedPrompt ? (
           <div>
-            <p style={{ fontSize: "12px", color: "#4b5563", lineHeight: 1.5, marginBottom: "8px" }}>
-              {savedPrompt.prompt}
-            </p>
+            {/* 风格分析详情（新格式）*/}
+            {savedPrompt.styleAnalysis && (
+              <div style={{ marginBottom: "12px" }}>
+                {savedPrompt.styleAnalysis.styleDNA && (
+                  <div style={{ marginBottom: "8px", padding: "8px", backgroundColor: "#f0f9ff", borderRadius: "6px" }}>
+                    <p style={{ fontSize: "10px", color: "#0369a1", margin: 0, marginBottom: "4px" }}>🎯 风格 DNA</p>
+                    <p style={{ fontSize: "12px", color: "#0c4a6e", margin: 0, lineHeight: 1.4 }}>{savedPrompt.styleAnalysis.styleDNA}</p>
+                  </div>
+                )}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  {savedPrompt.styleAnalysis.backgroundMaterial && (
+                    <div>
+                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>背景材质</p>
+                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.backgroundMaterial}</p>
+                    </div>
+                  )}
+                  {savedPrompt.styleAnalysis.subjectStyle && (
+                    <div>
+                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>主体风格</p>
+                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.subjectStyle}</p>
+                    </div>
+                  )}
+                  {savedPrompt.styleAnalysis.elementStyle && (
+                    <div>
+                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>元素风格</p>
+                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.elementStyle}</p>
+                    </div>
+                  )}
+                  {savedPrompt.styleAnalysis.composition && (
+                    <div>
+                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>构图</p>
+                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.composition}</p>
+                    </div>
+                  )}
+                  {savedPrompt.styleAnalysis.colorTreatment && (
+                    <div>
+                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>色彩</p>
+                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.colorTreatment}</p>
+                    </div>
+                  )}
+                  {savedPrompt.styleAnalysis.vibeMood && (
+                    <div>
+                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>氛围</p>
+                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.vibeMood}</p>
+                    </div>
+                  )}
+                  {savedPrompt.styleAnalysis.lighting && (
+                    <div>
+                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>光照</p>
+                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.lighting}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {/* 兼容旧格式：完整 prompt */}
+            {!savedPrompt.styleAnalysis && (
+              <p style={{ fontSize: "12px", color: "#4b5563", lineHeight: 1.5, marginBottom: "8px" }}>
+                {savedPrompt.prompt}
+              </p>
+            )}
             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#9ca3af" }}>
               <span>
                 {savedPrompt.imageAlt ? `Alt: ${savedPrompt.imageAlt.slice(0, 30)}${savedPrompt.imageAlt.length > 30 ? "…" : ""}` : "无 Alt 文本"}
@@ -328,6 +417,7 @@ function Popup() {
         )}
       </div>
     </div>
+    </>
   );
 }
 
