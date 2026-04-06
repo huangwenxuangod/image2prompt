@@ -41,40 +41,48 @@
 - **类型**: TypeScript 6.x (strict mode)
 - **AI**: 火山引擎 ARK（豆包视觉模型 + Seedream 图像生成）
 
-## 快速开始
+---
 
-### 安装依赖
+# 🚀 快速安装（无需编译，直接使用）
 
+## 方式 1：从 Release 下载 ZIP 安装（推荐）
+1. 前往项目 **Releases** 页面下载最新版本的 `extension.zip`
+2. 打开 Chrome/Edge 浏览器
+3. 进入扩展管理页面：
+   - Chrome：`chrome://extensions/`
+   - Edge：`edge://extensions/`
+4. 打开右上角 **开发者模式**
+5. **直接将下载好的 `extension.zip` 拖入页面**
+6. 扩展会自动解压并安装完成
+
+> 无需解压、无需命令行、无需构建，拖入即可使用。
+
+## 方式 2：本地构建安装
 ```bash
 bun install
-```
-
-### 开发模式
-
-```bash
 bun run dev
 ```
 
 自动打开 Chrome 并加载扩展。
 
-### 生产构建
+---
 
+## 生产构建
 ```bash
 bun run build
 ```
 
-### 打包扩展
-
+## 打包扩展
 ```bash
 bun run zip
 ```
+生成 `.zip` 文件用于上传 Chrome Web Store 或手动安装。
 
-生成 `.zip` 文件用于上传 Chrome Web Store。
+---
 
-## 使用说明
+# 使用说明
 
 ### 1. 配置 API Key
-
 1. 点击浏览器工具栏的扩展图标
 2. 输入你的火山引擎 ARK API Key（格式：`sk-...`）
 3. 点击 "保存 API Key"
@@ -82,15 +90,13 @@ bun run zip
 > API Key 仅保存在本地，不会发送到任何第三方服务器（除火山引擎 ARK API）
 
 ### 2. 分析图片
-
 1. 访问任意包含图片的网页
 2. 悬停在图片上（图片尺寸 ≥ 60×60）
-3. 点击右下角的白色魔法棒图标（2026 极简设计：40×40px，圆角 10px）
+3. 点击右下角的白色魔法棒图标
 4. 等待分析完成（图标变为翡翠绿色勾）
 5. 分析结果会自动保存到 Popup 页面
 
 ### 3. 生成图片
-
 #### 方式一：在网页上直接生成
 1. 在网页上选中任意文字（≥3个字符）
 2. 松开鼠标后出现工具栏
@@ -109,8 +115,9 @@ bun run zip
    - 预览结果图片
    - 下载图片或重置状态
 
-## 项目结构
+---
 
+## 项目结构
 ```
 image2prompt/
 ├── assets/
@@ -145,9 +152,7 @@ image2prompt/
 ```
 
 ## 火山引擎 ARK 配置
-
 当前项目使用火山引擎 ARK API：
-
 - **视觉模型**: doubao-1-5-vision-pro-32k-250115
 - **Prompt 融合**: doubao-seed-2-0-pro-260215
 - **图像生成**: doubao-seedream-4-0-250828
@@ -155,7 +160,6 @@ image2prompt/
 API 端点: `https://ark.cn-beijing.volces.com/api/v3`
 
 ## 注意事项
-
 - **CORS**: 图片 fetch 在 Background Service Worker 中执行，无 CORS 限制
 - **Shadow DOM**: 所有 UI 在 Shadow DOM 内渲染，不污染宿主页面样式
 - **图片尺寸**: 小于 60×60 的图片会被忽略
@@ -163,9 +167,8 @@ API 端点: `https://ark.cn-beijing.volces.com/api/v3`
 - **生成历史**: 最多保存 20 条生成记录，超出后自动删除最旧的
 
 ## 开发规范
-
 参考 [Claude.md](./Claude.md) 了解详细的开发规范和技术约束。
 
 ## License
-
 MIT
+
