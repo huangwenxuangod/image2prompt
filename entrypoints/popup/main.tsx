@@ -1,6 +1,8 @@
 import "../../assets/style.css";
 import React, { useEffect, useState, useCallback } from "react";
 import { createRoot } from "react-dom/client";
+import * as Collapsible from "@radix-ui/react-collapsible";
+import { ChevronDown, ChevronUp, Plus, X, CheckCircle2, Loader2, AlertCircle, Image as ImageIcon, Download, Trash2 } from "lucide-react";
 import type {
   SavedImagePrompt,
   GenerationHistoryItem,
@@ -120,303 +122,279 @@ function Popup() {
   return (
     <>
       <SpinStyle />
-      <div style={{ width: "320px", maxHeight: "600px", padding: "16px", overflowY: "auto" }}>
-      <h1 style={{ fontSize: "14px", fontWeight: 500, marginBottom: "16px" }}>AI Image Generator</h1>
+      <div className="w-[340px] max-h-[600px] p-4 overflow-y-auto bg-white">
+        {/* 页面标题 */}
+        <h1 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
+          <ImageIcon className="w-5 h-5 text-blue-600" />
+          AI Image Generator
+        </h1>
 
-      {/* API Key Section */}
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
-        <p style={{ fontSize: "12px", color: "#6b7280", marginBottom: "12px" }}>
-          输入火山引擎 ARK API Key。仅保存在本地，仅发送至火山引擎 API。
-        </p>
-        <input
-          type="password"
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder="api-key-..."
-          style={{
-            width: "100%",
-            padding: "8px 12px",
-            border: "1px solid #d1d5db",
-            borderRadius: "6px",
-            marginBottom: "12px",
-            fontSize: "14px",
-          }}
-        />
-        <button
-          onClick={handleSave}
-          style={{
-            width: "100%",
-            padding: "8px 16px",
-            backgroundColor: saved ? "#10b981" : "#3b82f6",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            fontSize: "14px",
-            cursor: "pointer",
-          }}
-        >
-          {saved ? "✓ 已保存" : "保存 API Key"}
-        </button>
-      </div>
-
-      {/* Current Generation Section */}
-      {(currentGeneration || savedPrompt) && (
-        <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-            <span>✨</span>
-            <span style={{ fontSize: "12px", fontWeight: 500 }}>当前生成</span>
-            {currentGeneration && (
-              <span style={{ fontSize: "10px", color: "#9ca3af", marginLeft: "auto" }}>
-                {getStatusText(currentGeneration.status)}
-              </span>
+        {/* API Key Section */}
+        <div className="border border-gray-200 rounded-xl p-4 mb-5 bg-white shadow-sm">
+          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+            输入火山引擎 ARK API Key。仅保存在本地，仅发送至火山引擎 API。
+          </p>
+          <input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="api-key-..."
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors mb-3"
+          />
+          <button
+            onClick={handleSave}
+            className={`w-full py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+              saved ? "bg-emerald-500 text-white" : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md active:scale-[0.98]"
+            }`}
+          >
+            {saved ? (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                已保存
+              </>
+            ) : (
+              "保存 API Key"
             )}
-          </div>
-
-          {/* 旋转 Loading（生成中）*/}
-          {(currentGeneration?.status === "fusing" || currentGeneration?.status === "generating") && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", padding: "16px 0" }}>
-              <div
-                style={{
-                  width: "32px",
-                  height: "32px",
-                  border: "3px solid #e5e7eb",
-                  borderTopColor: "#3b82f6",
-                  borderRadius: "9999px",
-                  animation: "spin 1s linear infinite",
-                }}
-              />
-              <p style={{ fontSize: "12px", color: "#6b7280", margin: 0 }}>
-                {currentGeneration.status === "fusing" ? "优化 prompt 中…" : "生成图片中…"}
-              </p>
-            </div>
-          )}
-
-          {/* 结果图片 */}
-          {currentGeneration?.status === "done" && currentGeneration.resultUrl && (
-            <div style={{ marginBottom: "12px" }}>
-              <img
-                src={currentGeneration.resultUrl}
-                alt="Generated"
-                style={{ width: "100%", borderRadius: "8px" }}
-              />
-            </div>
-          )}
-
-          {/* 错误信息 */}
-          {currentGeneration?.status === "error" && currentGeneration.error && (
-            <p style={{ fontSize: "12px", color: "#ef4444", backgroundColor: "#fef2f2", padding: "8px", borderRadius: "6px", marginBottom: "12px" }}>
-              {currentGeneration.error}
-            </p>
-          )}
-
-          {/* 操作按钮 */}
-          {currentGeneration?.status === "done" && (
-            <div style={{ display: "flex", gap: "8px" }}>
-              <button
-                onClick={() => currentGeneration.resultUrl && handleDownload(currentGeneration.resultUrl)}
-                style={{
-                  flex: 1,
-                  padding: "8px",
-                  border: "1px solid #d1d5db",
-                  backgroundColor: "white",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
-              >
-                下载
-              </button>
-              <button
-                onClick={() => browser.storage.local.remove("currentGeneration")}
-                style={{
-                  flex: 1,
-                  padding: "8px",
-                  border: "none",
-                  backgroundColor: "#3b82f6",
-                  color: "white",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
-              >
-                重置
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Saved Prompt Section */}
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px", marginBottom: "16px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <span>🖼️</span>
-            <span style={{ fontSize: "12px", fontWeight: 500 }}>最新图片描述</span>
-          </div>
-          {savedPrompt && (
-            <button
-              onClick={handleClearPrompt}
-              style={{
-                padding: "4px 8px",
-                border: "none",
-                backgroundColor: "#fee2e2",
-                color: "#ef4444",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "12px",
-              }}
-            >
-              清除
-            </button>
-          )}
+          </button>
         </div>
 
-        {savedPrompt ? (
-          <div>
-            {/* 风格分析详情（新格式）*/}
-            {savedPrompt.styleAnalysis && (
-              <div style={{ marginBottom: "12px" }}>
-                {savedPrompt.styleAnalysis.styleDNA && (
-                  <div style={{ marginBottom: "8px", padding: "8px", backgroundColor: "#f0f9ff", borderRadius: "6px" }}>
-                    <p style={{ fontSize: "10px", color: "#0369a1", margin: 0, marginBottom: "4px" }}>🎯 风格 DNA</p>
-                    <p style={{ fontSize: "12px", color: "#0c4a6e", margin: 0, lineHeight: 1.4 }}>{savedPrompt.styleAnalysis.styleDNA}</p>
-                  </div>
-                )}
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                  {savedPrompt.styleAnalysis.backgroundMaterial && (
-                    <div>
-                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>背景材质</p>
-                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.backgroundMaterial}</p>
-                    </div>
-                  )}
-                  {savedPrompt.styleAnalysis.subjectStyle && (
-                    <div>
-                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>主体风格</p>
-                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.subjectStyle}</p>
-                    </div>
-                  )}
-                  {savedPrompt.styleAnalysis.elementStyle && (
-                    <div>
-                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>元素风格</p>
-                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.elementStyle}</p>
-                    </div>
-                  )}
-                  {savedPrompt.styleAnalysis.composition && (
-                    <div>
-                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>构图</p>
-                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.composition}</p>
-                    </div>
-                  )}
-                  {savedPrompt.styleAnalysis.colorTreatment && (
-                    <div>
-                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>色彩</p>
-                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.colorTreatment}</p>
-                    </div>
-                  )}
-                  {savedPrompt.styleAnalysis.vibeMood && (
-                    <div>
-                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>氛围</p>
-                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.vibeMood}</p>
-                    </div>
-                  )}
-                  {savedPrompt.styleAnalysis.lighting && (
-                    <div>
-                      <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "2px" }}>光照</p>
-                      <p style={{ fontSize: "11px", color: "#4b5563", margin: 0 }}>{savedPrompt.styleAnalysis.lighting}</p>
-                    </div>
-                  )}
-                </div>
+        {/* Current Generation Section */}
+        {(currentGeneration || savedPrompt) && (
+          <div className="border border-gray-200 rounded-xl p-4 mb-5 bg-white shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-lg">✨</span>
+              <span className="text-sm font-semibold text-gray-900">当前生成</span>
+              {currentGeneration && (
+                <span className="ml-auto text-xs text-gray-400">
+                  {getStatusText(currentGeneration.status)}
+                </span>
+              )}
+            </div>
+
+            {/* 旋转 Loading（生成中）*/}
+            {(currentGeneration?.status === "fusing" || currentGeneration?.status === "generating") && (
+              <div className="flex flex-col items-center gap-2 py-4">
+                <Loader2 className="w-8 h-8 text-blue-600 animate-[spin_1s_linear_infinite]" />
+                <p className="text-sm text-gray-600 m-0">
+                  {currentGeneration.status === "fusing" ? "优化 prompt 中…" : "生成图片中…"}
+                </p>
               </div>
             )}
-            {/* 兼容旧格式：完整 prompt */}
-            {!savedPrompt.styleAnalysis && (
-              <p style={{ fontSize: "12px", color: "#4b5563", lineHeight: 1.5, marginBottom: "8px" }}>
-                {savedPrompt.prompt}
-              </p>
-            )}
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", color: "#9ca3af" }}>
-              <span>
-                {savedPrompt.imageAlt ? `Alt: ${savedPrompt.imageAlt.slice(0, 30)}${savedPrompt.imageAlt.length > 30 ? "…" : ""}` : "无 Alt 文本"}
-              </span>
-              <span>{formatTime(savedPrompt.analyzedAt)}</span>
-            </div>
-          </div>
-        ) : (
-          <p style={{ fontSize: "12px", color: "#9ca3af", fontStyle: "italic" }}>
-            在任意页面悬停图片并点击分析按钮，即可保存图片描述。
-          </p>
-        )}
-      </div>
 
-      {/* Generation History Section */}
-      <div style={{ border: "1px solid #e5e7eb", borderRadius: "8px", padding: "12px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
-          <span style={{ fontSize: "12px", fontWeight: 500 }}>生成历史</span>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {history.length > 0 && (
+            {/* 结果图片 */}
+            {currentGeneration?.status === "done" && currentGeneration.resultUrl && (
+              <div className="mb-4">
+                <img
+                  src={currentGeneration.resultUrl}
+                  alt="Generated"
+                  className="w-full rounded-lg"
+                />
+              </div>
+            )}
+
+            {/* 错误信息 */}
+            {currentGeneration?.status === "error" && currentGeneration.error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <p className="text-xs text-red-600 leading-relaxed m-0">
+                  {currentGeneration.error}
+                </p>
+              </div>
+            )}
+
+            {/* 操作按钮 */}
+            {currentGeneration?.status === "done" && (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => currentGeneration.resultUrl && handleDownload(currentGeneration.resultUrl)}
+                  className="flex-1 py-2 border border-gray-300 bg-white rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
+                >
+                  <Download className="w-4 h-4" />
+                  下载
+                </button>
+                <button
+                  onClick={() => browser.storage.local.remove("currentGeneration")}
+                  className="flex-1 py-2 border-none bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+                >
+                  <X className="w-4 h-4" />
+                  重置
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Saved Prompt Section */}
+        <div className="border border-gray-200 rounded-xl p-4 mb-5 bg-white shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🖼️</span>
+              <span className="text-sm font-semibold text-gray-900">最新图片描述</span>
+            </div>
+            {savedPrompt && (
               <button
-                onClick={handleClearHistory}
-                style={{
-                  padding: "4px 8px",
-                  border: "none",
-                  backgroundColor: "#fee2e2",
-                  color: "#ef4444",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "12px",
-                }}
+                onClick={handleClearPrompt}
+                className="px-2 py-1 border-none bg-red-50 text-red-500 rounded-md text-xs hover:bg-red-100 transition-colors flex items-center gap-1"
               >
-                清空
+                <Trash2 className="w-3 h-3" />
+                清除
               </button>
             )}
-            <button
-              onClick={() => {
-                setShowHistory(!showHistory);
-                if (!showHistory) loadHistory();
-              }}
-              style={{
-                padding: "4px 8px",
-                border: "none",
-                backgroundColor: "#eff6ff",
-                color: "#3b82f6",
-                borderRadius: "4px",
-                cursor: "pointer",
-                fontSize: "12px",
-              }}
-            >
-              {showHistory ? "收起" : `展开 (${history.length})`}
-            </button>
           </div>
-        </div>
 
-        {showHistory && (
-          <div>
-            {history.length === 0 ? (
-              <p style={{ fontSize: "12px", color: "#9ca3af", fontStyle: "italic" }}>
-                暂无生成历史。
-              </p>
-            ) : (
-              history.map((item) => (
-                <div key={item.id} style={{ border: "1px solid #e5e7eb", borderRadius: "8px", overflow: "hidden", marginBottom: "12px" }}>
-                  <img
-                    src={item.imageDataUrl}
-                    alt="Generated"
-                    style={{ width: "100%", height: "128px", objectFit: "cover", cursor: "pointer" }}
-                    onClick={() => handleDownload(item.imageDataUrl)}
-                  />
-                  <div style={{ padding: "8px" }}>
-                    <p style={{ fontSize: "10px", color: "#9ca3af", margin: 0, marginBottom: "4px" }}>
-                      {item.size} · {formatTime(item.createdAt)}
-                    </p>
-                    <p style={{ fontSize: "12px", color: "#4b5563", margin: 0, lineHeight: 1.4 }}>
-                      {item.prompt}
-                    </p>
+          {savedPrompt ? (
+            <div>
+              {/* 风格分析详情（新格式）*/}
+              {savedPrompt.styleAnalysis && (
+                <div className="mb-4">
+                  {savedPrompt.styleAnalysis.styleDNA && (
+                    <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                      <p className="text-xs font-medium text-blue-600 mb-1 flex items-center gap-1">
+                        <span>🎯</span>
+                        风格 DNA
+                      </p>
+                      <p className="text-sm text-blue-800 leading-relaxed m-0">
+                        {savedPrompt.styleAnalysis.styleDNA}
+                      </p>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    {savedPrompt.styleAnalysis.backgroundMaterial && (
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">背景材质</p>
+                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.backgroundMaterial}</p>
+                      </div>
+                    )}
+                    {savedPrompt.styleAnalysis.subjectStyle && (
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">主体风格</p>
+                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.subjectStyle}</p>
+                      </div>
+                    )}
+                    {savedPrompt.styleAnalysis.elementStyle && (
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">元素风格</p>
+                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.elementStyle}</p>
+                      </div>
+                    )}
+                    {savedPrompt.styleAnalysis.composition && (
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">构图</p>
+                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.composition}</p>
+                      </div>
+                    )}
+                    {savedPrompt.styleAnalysis.colorTreatment && (
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">色彩</p>
+                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.colorTreatment}</p>
+                      </div>
+                    )}
+                    {savedPrompt.styleAnalysis.vibeMood && (
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">氛围</p>
+                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.vibeMood}</p>
+                      </div>
+                    )}
+                    {savedPrompt.styleAnalysis.lighting && (
+                      <div>
+                        <p className="text-xs text-gray-400 mb-0.5">光照</p>
+                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.lighting}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))
-            )}
+              )}
+              {/* 兼容旧格式：完整 prompt */}
+              {!savedPrompt.styleAnalysis && (
+                <p className="text-sm text-gray-600 leading-relaxed mb-3">
+                  {savedPrompt.prompt}
+                </p>
+              )}
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>
+                  {savedPrompt.imageAlt ? `Alt: ${savedPrompt.imageAlt.slice(0, 30)}${savedPrompt.imageAlt.length > 30 ? "…" : ""}` : "无 Alt 文本"}
+                </span>
+                <span>{formatTime(savedPrompt.analyzedAt)}</span>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 italic">
+              在任意页面悬停图片并点击分析按钮，即可保存图片描述。
+            </p>
+          )}
+        </div>
+
+        {/* Generation History Section - Radix UI Collapsible */}
+        <Collapsible.Root
+          open={showHistory}
+          onOpenChange={(open) => {
+            setShowHistory(open);
+            if (open) loadHistory();
+          }}
+        >
+          <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+            <div className="flex items-center justify-between mb-0">
+              <span className="text-sm font-semibold text-gray-900">生成历史</span>
+              <div className="flex items-center gap-2">
+                {history.length > 0 && (
+                  <button
+                    onClick={handleClearHistory}
+                    className="px-2 py-1 border-none bg-red-50 text-red-500 rounded-md text-xs hover:bg-red-100 transition-colors"
+                  >
+                    清空
+                  </button>
+                )}
+                <Collapsible.Trigger asChild>
+                  <button
+                    className="px-2 py-1 border-none bg-blue-50 text-blue-600 rounded-md text-xs hover:bg-blue-100 transition-colors flex items-center gap-1"
+                  >
+                    {showHistory ? (
+                      <>
+                        <ChevronUp className="w-3 h-3" />
+                        收起
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-3 h-3" />
+                        展开 ({history.length})
+                      </>
+                    )}
+                  </button>
+                </Collapsible.Trigger>
+              </div>
+            </div>
+
+            <Collapsible.Content className="mt-3 overflow-hidden data-[state=closed]:animate-slideUp data-[state=open]:animate-slideDown">
+              {history.length === 0 ? (
+                <p className="text-sm text-gray-400 italic py-2">
+                  暂无生成历史。
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {history.map((item) => (
+                    <div key={item.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                      <img
+                        src={item.imageDataUrl}
+                        alt="Generated"
+                        className="w-full h-32 object-cover cursor-pointer"
+                        onClick={() => handleDownload(item.imageDataUrl)}
+                      />
+                      <div className="p-2">
+                        <p className="text-xs text-gray-400 mb-1">
+                          {item.size} · {formatTime(item.createdAt)}
+                        </p>
+                        <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">
+                          {item.prompt}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Collapsible.Content>
           </div>
-        )}
+        </Collapsible.Root>
       </div>
-    </div>
     </>
   );
 }

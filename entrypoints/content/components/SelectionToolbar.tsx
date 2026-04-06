@@ -19,7 +19,7 @@ interface Props {
 export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
   console.log("🎨 SelectionToolbar rendering!", selection);
 
-  const [selectedSize, setSelectedSize] = useState<ImageSize>("1280x512");
+  const [selectedSize, setSelectedSize] = useState<ImageSize>("1600x640");
   const [showSizeDropdown, setShowSizeDropdown] = useState(false);
 
   // 虚拟元素：reference = 鼠标松开时的坐标点（宽高为 0）
