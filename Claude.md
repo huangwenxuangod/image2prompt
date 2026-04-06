@@ -46,7 +46,6 @@ image2prompt/
 ├── .gitignore
 ├── README.md                          ← 项目说明文档
 ├── Claude.md                          ← 本配置文件
-├── Agents.md                          ← 原始工程提示词
 ├── assets/
 │   └── style.css                        ← Tailwind v4 + HeroUI 全局样式
 ├── public/

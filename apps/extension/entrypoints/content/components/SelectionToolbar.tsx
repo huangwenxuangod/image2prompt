@@ -60,6 +60,7 @@ export function SelectionToolbar({ selection, onGenerate, onDismiss }: Props) {
       ref={refs.setFloating}
       style={{ ...floatingStyles, pointerEvents: "auto" }}
       className="z-[2147483647]"
+      data-image2prompt-toolbar="true"
       onMouseDown={(e) => e.stopPropagation()}
     >
       {/* 2026 极简工具栏：白色背景 + 细边框 + 微阴影 + 15px 圆角，更扁平 */}

@@ -15,8 +15,9 @@ export function useImageHover(buttonHoveredRef: React.MutableRefObject<boolean>)
     function onEnter(e: MouseEvent) {
       const target = e.target as HTMLElement;
       if (!(target instanceof HTMLImageElement)) return;
-      // 改用 naturalWidth/naturalHeight，因为有些图片 CSS 缩放了
-      if (target.naturalWidth < 60 || target.naturalHeight < 60) return; // 忽略小图标
+
+      // 更严格的图片过滤
+      if (isLikelyIcon(target)) return;
 
       if (leaveTimer.current) clearTimeout(leaveTimer.current);
       const rect = target.getBoundingClientRect();
@@ -63,4 +64,42 @@ export function useImageHover(buttonHoveredRef: React.MutableRefObject<boolean>)
   }, [buttonHoveredRef]);
 
   return hoveredImage;
+}
+
+/**
+ * 判断图片是否很可能是图标/装饰性小图
+ */
+function isLikelyIcon(img: HTMLImageElement): boolean {
+  const { naturalWidth, naturalHeight, src, className, alt } = img;
+
+  // 1. 尺寸过滤（更严格）
+  if (naturalWidth < 100 || naturalHeight < 100) return true;
+
+  // 2. 尺寸比例过滤（极端比例的图片很可能是装饰性的）
+  const aspectRatio = naturalWidth / naturalHeight;
+  if (aspectRatio > 10 || aspectRatio < 0.1) return true;
+
+  // 3. URL/文件名过滤（常见图标/装饰图特征）
+  const iconKeywords = [
+    "icon", "logo", "avatar", "thumbnail", "thumb", "sprite",
+    "loading", "spinner", "placeholder", "blank", "pixel",
+    "favicon", "button", "btn", "arrow", "chevron",
+    "check", "cross", "close", "menu", "hamburger",
+    "-16", "-24", "-32", "-48", "-64", "@2x", "@3x",
+    ".svg", "data:image/svg", "data:image/png;base64",
+  ];
+  const lowerSrc = src.toLowerCase();
+  const lowerClass = className.toLowerCase();
+  const lowerAlt = alt.toLowerCase();
+
+  for (const keyword of iconKeywords) {
+    if (lowerSrc.includes(keyword)) return true;
+    if (lowerClass.includes(keyword)) return true;
+    if (lowerAlt.includes(keyword)) return true;
+  }
+
+  // 4. CSS 类名过滤
+  if (lowerClass.includes("icon") || lowerClass.includes("svg")) return true;
+
+  return false;
 }
