@@ -1,13 +1,25 @@
-import { analyzeImageWithVision, fusePrompt, generateImage, saveToHistory, generateId } from "../lib/api";
 import type {
   ExtensionMessage,
   SavedImagePrompt,
   GenerationHistoryItem,
   CurrentGeneration,
   GenerationRequest,
+  ImageStyleAnalysis,
 } from "../lib/types";
+import {
+  analyzeImageWithWebAPI,
+  generateImageWithWebAPI,
+  isAuthenticated,
+} from "../lib/web-api";
 
-// 更新当前生成状态到 storage
+function generateId(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 async function updateCurrentGeneration(current: CurrentGeneration | null): Promise<void> {
   if (current) {
     await browser.storage.local.set({ currentGeneration: current });
@@ -16,10 +28,29 @@ async function updateCurrentGeneration(current: CurrentGeneration | null): Promi
   }
 }
 
-// 获取当前生成状态
 async function getCurrentGeneration(): Promise<CurrentGeneration | null> {
   const result = await browser.storage.local.get("currentGeneration");
   return (result.currentGeneration as CurrentGeneration) ?? null;
+}
+
+const MAX_HISTORY = 20;
+
+async function getGenerationHistory(): Promise<GenerationHistoryItem[]> {
+  const result = await browser.storage.local.get("generationHistory");
+  return (result.generationHistory as GenerationHistoryItem[]) ?? [];
+}
+
+async function saveToHistory(item: GenerationHistoryItem): Promise<void> {
+  const history = await getGenerationHistory();
+  history.unshift(item);
+  if (history.length > MAX_HISTORY) {
+    history.pop();
+  }
+  await browser.storage.local.set({ generationHistory: history });
+}
+
+async function clearGenerationHistory(): Promise<void> {
+  await browser.storage.local.remove("generationHistory");
 }
 
 export default defineBackground(() => {
@@ -29,33 +60,73 @@ export default defineBackground(() => {
       _sender: browser.runtime.MessageSender,
       sendResponse: (response: ExtensionMessage) => void
     ) => {
-      // --- 图片分析 ---
       if (message.type === "ANALYZE_IMAGE") {
-        analyzeImageWithVision(message.imageUrl, message.imageAlt)
-          .then((result) => sendResponse({ type: "ANALYZE_IMAGE_RESULT", prompt: result.prompt, styleAnalysis: result.styleAnalysis }))
-          .catch((err) =>
-            sendResponse({ type: "ANALYZE_IMAGE_ERROR", error: String(err) })
-          );
+        (async () => {
+          try {
+            const authenticated = await isAuthenticated();
+            if (!authenticated) {
+              throw new Error("Please connect to Web app first");
+            }
+
+            const response = await fetch(message.imageUrl, {
+              mode: "cors",
+              credentials: "omit",
+            });
+            if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+            const blob = await response.blob();
+
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve((reader.result as string).split(",")[1]);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+
+            const rawType = blob.type || "image/png";
+            const mediaType = rawType.startsWith("image/") ? rawType : "image/png";
+
+            const result = await analyzeImageWithWebAPI(base64, mediaType, message.imageAlt);
+
+            const savedPrompt: SavedImagePrompt = {
+              prompt: result.prompt,
+              styleAnalysis: result.styleAnalysis,
+              imageUrl: message.imageUrl,
+              imageAlt: message.imageAlt,
+              analyzedAt: Date.now(),
+              sourceUrl: _sender.tab?.url ?? "",
+            };
+            await browser.storage.local.set({ savedPrompt });
+
+            sendResponse({
+              type: "ANALYZE_IMAGE_RESULT",
+              prompt: result.prompt,
+              styleAnalysis: result.styleAnalysis,
+            });
+          } catch (err) {
+            sendResponse({ type: "ANALYZE_IMAGE_ERROR", error: String(err) });
+          }
+        })();
         return true;
       }
 
-      // --- 开始生成（从 Content Script 触发）---
       if (message.type === "START_GENERATION") {
         (async () => {
           try {
-            // 1. 读取 savedPrompt
+            const authenticated = await isAuthenticated();
+            if (!authenticated) {
+              throw new Error("Please connect to Web app first");
+            }
+
             const savedPromptResult = await browser.storage.local.get("savedPrompt");
             const savedPrompt = savedPromptResult.savedPrompt as SavedImagePrompt | null;
 
-            // 2. 构建初始 request
             const request: GenerationRequest = {
               ...message.request,
               styleAnalysis: savedPrompt?.styleAnalysis ?? null,
-              mergedPrompt: "", // 会在下面填充
-              finalPrompt: "",  // 会在 fuse 后填充
+              mergedPrompt: "",
+              finalPrompt: "",
             };
 
-            // 3. 初始化当前生成状态
             const current: CurrentGeneration = {
               status: "fusing",
               request,
@@ -66,61 +137,42 @@ export default defineBackground(() => {
             };
             await updateCurrentGeneration(current);
 
-            // 4. 尝试打开 Popup
             try {
-              // @ts-ignore - chrome.action.openPopup 是 MV3 API
               if (browser.action?.openPopup) {
-                // @ts-ignore
-                await browser.action.openPopup();
+                await (browser.action as any).openPopup();
               }
             } catch (e) {
               console.log("Could not open popup automatically:", e);
-              // Popup 打开失败没关系，用户可以手动点击
             }
 
-            // 5. 异步执行完整生成流程
             (async () => {
               try {
-                // 步骤 1: Fuse prompt - 使用风格分析 + 文字内容
-                const finalPrompt = await fusePrompt(
-                  savedPrompt?.styleAnalysis ?? null,
-                  message.request.textContext
-                );
-                request.mergedPrompt = finalPrompt;
-                request.finalPrompt = finalPrompt;
-
-                // 更新状态为生成中
                 await updateCurrentGeneration({
                   ...current,
                   status: "generating",
-                  request,
                   progress: 60,
                 });
 
-                // 步骤 2: 生成图片
-                const dataUrl = await generateImage(finalPrompt, request.size);
+                const result = await generateImageWithWebAPI(
+                  savedPrompt?.styleAnalysis ?? null,
+                  message.request.textContext,
+                  request.size,
+                  _sender.tab?.url ?? ""
+                );
 
-                // 步骤 3: 保存到历史记录
-                const historyItem: GenerationHistoryItem = {
-                  id: generateId(),
-                  prompt: finalPrompt,
-                  size: request.size,
-                  createdAt: Date.now(),
-                  imageDataUrl: dataUrl,
-                  sourcePageUrl: _sender.tab?.url ?? "",
-                };
-                await saveToHistory(historyItem);
+                request.mergedPrompt = result.finalPrompt;
+                request.finalPrompt = result.finalPrompt;
 
-                // 更新状态为完成
+                await saveToHistory(result.historyItem);
+
                 await updateCurrentGeneration({
                   ...current,
                   status: "done",
                   request,
                   progress: 100,
-                  resultUrl: dataUrl,
+                  resultUrl: result.imageDataUrl,
                 });
               } catch (err) {
-                // 更新状态为错误
                 await updateCurrentGeneration({
                   ...current,
                   status: "error",
@@ -138,7 +190,6 @@ export default defineBackground(() => {
         return true;
       }
 
-      // --- 读取当前生成状态 ---
       if (message.type === "GET_CURRENT_GENERATION") {
         getCurrentGeneration().then((current) =>
           sendResponse({ type: "GET_CURRENT_GENERATION_RESULT", current })
@@ -146,7 +197,6 @@ export default defineBackground(() => {
         return true;
       }
 
-      // --- 读取已保存的 prompt ---
       if (message.type === "GET_SAVED_PROMPT") {
         browser.storage.local.get("savedPrompt").then((result) =>
           sendResponse({
@@ -157,24 +207,33 @@ export default defineBackground(() => {
         return true;
       }
 
-      // --- 读取生成历史 ---
       if (message.type === "GET_GENERATION_HISTORY") {
-        browser.storage.local.get("generationHistory").then((result) =>
+        getGenerationHistory().then((history) =>
           sendResponse({
             type: "GET_GENERATION_HISTORY_RESULT",
-            history: (result.generationHistory as GenerationHistoryItem[]) ?? [],
+            history,
           })
         );
         return true;
       }
 
-      // --- 清除生成历史 ---
       if (message.type === "CLEAR_GENERATION_HISTORY") {
-        browser.storage.local.remove("generationHistory").then(() =>
+        clearGenerationHistory().then(() =>
           sendResponse({ type: "CLEAR_GENERATION_HISTORY_RESULT" })
         );
         return true;
       }
     }
   );
+
+  browser.runtime.onMessageExternal.addListener((message, _sender, sendResponse) => {
+    if (message.type === "image2prompt:auth") {
+      (async () => {
+        const { setAuthState } = await import("../lib/web-api");
+        await setAuthState(message.token, message.userId);
+        sendResponse({ success: true });
+      })();
+      return true;
+    }
+  });
 });

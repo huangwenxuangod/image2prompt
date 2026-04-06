@@ -7,9 +7,12 @@ export default defineConfig({
   manifest: {
     name: "AI Image Generator",
     description: "Analyze page images and generate new ones from selected text",
-    version: "1.0.0",
+    version: "2.0.0",
     permissions: ["storage", "activeTab", "scripting"],
     host_permissions: ["<all_urls>"],
+    externally_connectable: {
+      matches: ["http://localhost:3000/*"],
+    },
   },
   vite: () => ({
     plugins: [tailwindcss()],

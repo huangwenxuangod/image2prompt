@@ -2,15 +2,29 @@ import "../../assets/style.css";
 import React, { useEffect, useState, useCallback } from "react";
 import { createRoot } from "react-dom/client";
 import * as Collapsible from "@radix-ui/react-collapsible";
-import { ChevronDown, ChevronUp, Plus, X, CheckCircle2, Loader2, AlertCircle, Image as ImageIcon, Download, Trash2 } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Plus,
+  X,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  Image as ImageIcon,
+  Download,
+  Trash2,
+  Link2,
+  LogOut,
+  ExternalLink,
+} from "lucide-react";
 import type {
   SavedImagePrompt,
   GenerationHistoryItem,
   ExtensionMessage,
   CurrentGeneration,
 } from "../../lib/types";
+import { isAuthenticated, clearAuthState, openConnectPage } from "../../lib/web-api";
 
-// 添加 spin 动画
 const SpinStyle = () => (
   <style>{`
     @keyframes spin {
@@ -21,35 +35,30 @@ const SpinStyle = () => (
 );
 
 function Popup() {
-  const [apiKey, setApiKey] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [savedPrompt, setSavedPrompt] = useState<SavedImagePrompt | null>(null);
   const [history, setHistory] = useState<GenerationHistoryItem[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [currentGeneration, setCurrentGeneration] = useState<CurrentGeneration | null>(null);
 
-  console.log("🚀 Popup rendering!");
-
-  // 加载数据
   useEffect(() => {
     async function loadData() {
-      console.log("📦 Loading data from storage...");
-      const [apiResult, promptResult, currentResult] = await Promise.all([
-        browser.storage.local.get("volcArkApiKey"),
+      const [authResult, promptResult, currentResult] = await Promise.all([
+        isAuthenticated(),
         browser.storage.local.get("savedPrompt"),
         browser.storage.local.get("currentGeneration"),
       ]);
-      console.log("📦 Data loaded:", { apiResult, promptResult, currentResult });
-      if (apiResult.volcArkApiKey) setApiKey(apiResult.volcArkApiKey as string);
+      setAuthenticated(authResult);
       if (promptResult.savedPrompt) setSavedPrompt(promptResult.savedPrompt as SavedImagePrompt);
       if (currentResult.currentGeneration) {
         setCurrentGeneration(currentResult.currentGeneration as CurrentGeneration);
       }
+      setCheckingAuth(false);
     }
     loadData();
 
     const listener = (changes: Record<string, browser.storage.StorageChange>) => {
-      console.log("📦 Storage changed:", changes);
       if ("savedPrompt" in changes) {
         setSavedPrompt(changes.savedPrompt.newValue ?? null);
       }
@@ -58,6 +67,9 @@ function Popup() {
       }
       if ("currentGeneration" in changes) {
         setCurrentGeneration(changes.currentGeneration.newValue ?? null);
+      }
+      if ("webAuthToken" in changes || "webUserId" in changes) {
+        isAuthenticated().then(setAuthenticated);
       }
     };
     browser.storage.onChanged.addListener(listener);
@@ -73,10 +85,9 @@ function Popup() {
     }
   }, []);
 
-  async function handleSave() {
-    await browser.storage.local.set({ volcArkApiKey: apiKey });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  async function handleLogout() {
+    await clearAuthState();
+    setAuthenticated(false);
   }
 
   async function handleClearPrompt() {
@@ -119,69 +130,89 @@ function Popup() {
     }
   }
 
+  if (checkingAuth) {
+    return (
+      <div className="w-[340px] h-[200px] flex items-center justify-center bg-white">
+        <Loader2 className="w-6 h-6 text-zinc-400 animate-[spin_1s_linear_infinite]" />
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <>
+        <SpinStyle />
+        <div className="w-[340px] p-6 bg-white">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-zinc-900 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <ImageIcon className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-xl font-semibold text-zinc-900 mb-2">Image2Prompt</h1>
+            <p className="text-zinc-500 text-sm">连接 Web 端以开始使用</p>
+          </div>
+
+          <button
+            onClick={openConnectPage}
+            className="w-full py-3 bg-zinc-900 text-white rounded-xl text-sm font-medium hover:bg-zinc-800 transition-colors flex items-center justify-center gap-2"
+          >
+            <Link2 className="w-4 h-4" />
+            连接 Web 端
+          </button>
+
+          <p className="text-xs text-zinc-400 text-center mt-4">
+            点击上方按钮在新标签页中打开连接页面
+          </p>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <SpinStyle />
       <div className="w-[340px] max-h-[600px] p-4 overflow-y-auto bg-white">
-        {/* 页面标题 */}
-        <h1 className="text-base font-semibold text-gray-900 mb-5 flex items-center gap-2">
-          <ImageIcon className="w-5 h-5 text-blue-600" />
-          AI Image Generator
-        </h1>
-
-        {/* API Key Section */}
-        <div className="border border-gray-200 rounded-xl p-4 mb-5 bg-white shadow-sm">
-          <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-            输入火山引擎 ARK API Key。仅保存在本地，仅发送至火山引擎 API。
-          </p>
-          <input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="api-key-..."
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white placeholder:text-gray-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-colors mb-3"
-          />
+        <div className="flex items-center justify-between mb-5">
+          <h1 className="text-base font-semibold text-zinc-900 flex items-center gap-2">
+            <div className="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center">
+              <ImageIcon className="w-4 h-4 text-white" />
+            </div>
+            AI Image Generator
+          </h1>
           <button
-            onClick={handleSave}
-            className={`w-full py-2.5 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
-              saved ? "bg-emerald-500 text-white" : "bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md active:scale-[0.98]"
-            }`}
+            onClick={handleLogout}
+            className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-lg transition-colors"
+            title="退出登录"
           >
-            {saved ? (
-              <>
-                <CheckCircle2 className="w-4 h-4" />
-                已保存
-              </>
-            ) : (
-              "保存 API Key"
-            )}
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Current Generation Section */}
+        <div className="mb-5 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <p className="text-xs text-emerald-700 m-0">已连接 Web 端</p>
+        </div>
+
         {(currentGeneration || savedPrompt) && (
-          <div className="border border-gray-200 rounded-xl p-4 mb-5 bg-white shadow-sm">
+          <div className="border border-zinc-200 rounded-xl p-4 mb-5 bg-white shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <span className="text-lg">✨</span>
-              <span className="text-sm font-semibold text-gray-900">当前生成</span>
+              <span className="text-sm font-semibold text-zinc-900">当前生成</span>
               {currentGeneration && (
-                <span className="ml-auto text-xs text-gray-400">
+                <span className="ml-auto text-xs text-zinc-400">
                   {getStatusText(currentGeneration.status)}
                 </span>
               )}
             </div>
 
-            {/* 旋转 Loading（生成中）*/}
             {(currentGeneration?.status === "fusing" || currentGeneration?.status === "generating") && (
               <div className="flex flex-col items-center gap-2 py-4">
-                <Loader2 className="w-8 h-8 text-blue-600 animate-[spin_1s_linear_infinite]" />
-                <p className="text-sm text-gray-600 m-0">
+                <Loader2 className="w-8 h-8 text-zinc-600 animate-[spin_1s_linear_infinite]" />
+                <p className="text-sm text-zinc-600 m-0">
                   {currentGeneration.status === "fusing" ? "优化 prompt 中…" : "生成图片中…"}
                 </p>
               </div>
             )}
 
-            {/* 结果图片 */}
             {currentGeneration?.status === "done" && currentGeneration.resultUrl && (
               <div className="mb-4">
                 <img
@@ -192,7 +223,6 @@ function Popup() {
               </div>
             )}
 
-            {/* 错误信息 */}
             {currentGeneration?.status === "error" && currentGeneration.error && (
               <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
@@ -202,19 +232,18 @@ function Popup() {
               </div>
             )}
 
-            {/* 操作按钮 */}
             {currentGeneration?.status === "done" && (
               <div className="flex gap-2">
                 <button
                   onClick={() => currentGeneration.resultUrl && handleDownload(currentGeneration.resultUrl)}
-                  className="flex-1 py-2 border border-gray-300 bg-white rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
+                  className="flex-1 py-2 border border-zinc-300 bg-white rounded-lg text-sm text-zinc-700 hover:bg-zinc-50 transition-colors flex items-center justify-center gap-1"
                 >
                   <Download className="w-4 h-4" />
                   下载
                 </button>
                 <button
                   onClick={() => browser.storage.local.remove("currentGeneration")}
-                  className="flex-1 py-2 border-none bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-1"
+                  className="flex-1 py-2 border-none bg-zinc-900 text-white rounded-lg text-sm hover:bg-zinc-800 transition-colors flex items-center justify-center gap-1"
                 >
                   <X className="w-4 h-4" />
                   重置
@@ -224,12 +253,11 @@ function Popup() {
           </div>
         )}
 
-        {/* Saved Prompt Section */}
-        <div className="border border-gray-200 rounded-xl p-4 mb-5 bg-white shadow-sm">
+        <div className="border border-zinc-200 rounded-xl p-4 mb-5 bg-white shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <span className="text-lg">🖼️</span>
-              <span className="text-sm font-semibold text-gray-900">最新图片描述</span>
+              <span className="text-sm font-semibold text-zinc-900">最新图片描述</span>
             </div>
             {savedPrompt && (
               <button
@@ -244,16 +272,15 @@ function Popup() {
 
           {savedPrompt ? (
             <div>
-              {/* 风格分析详情（新格式）*/}
               {savedPrompt.styleAnalysis && (
                 <div className="mb-4">
                   {savedPrompt.styleAnalysis.styleDNA && (
-                    <div className="mb-3 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                      <p className="text-xs font-medium text-blue-600 mb-1 flex items-center gap-1">
+                    <div className="mb-3 p-3 bg-zinc-50 rounded-lg border border-zinc-200">
+                      <p className="text-xs font-medium text-zinc-600 mb-1 flex items-center gap-1">
                         <span>🎯</span>
                         风格 DNA
                       </p>
-                      <p className="text-sm text-blue-800 leading-relaxed m-0">
+                      <p className="text-sm text-zinc-800 leading-relaxed m-0">
                         {savedPrompt.styleAnalysis.styleDNA}
                       </p>
                     </div>
@@ -261,56 +288,55 @@ function Popup() {
                   <div className="grid grid-cols-2 gap-2">
                     {savedPrompt.styleAnalysis.backgroundMaterial && (
                       <div>
-                        <p className="text-xs text-gray-400 mb-0.5">背景材质</p>
-                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.backgroundMaterial}</p>
+                        <p className="text-xs text-zinc-400 mb-0.5">背景材质</p>
+                        <p className="text-xs text-zinc-600 m-0">{savedPrompt.styleAnalysis.backgroundMaterial}</p>
                       </div>
                     )}
                     {savedPrompt.styleAnalysis.subjectStyle && (
                       <div>
-                        <p className="text-xs text-gray-400 mb-0.5">主体风格</p>
-                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.subjectStyle}</p>
+                        <p className="text-xs text-zinc-400 mb-0.5">主体风格</p>
+                        <p className="text-xs text-zinc-600 m-0">{savedPrompt.styleAnalysis.subjectStyle}</p>
                       </div>
                     )}
                     {savedPrompt.styleAnalysis.elementStyle && (
                       <div>
-                        <p className="text-xs text-gray-400 mb-0.5">元素风格</p>
-                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.elementStyle}</p>
+                        <p className="text-xs text-zinc-400 mb-0.5">元素风格</p>
+                        <p className="text-xs text-zinc-600 m-0">{savedPrompt.styleAnalysis.elementStyle}</p>
                       </div>
                     )}
                     {savedPrompt.styleAnalysis.composition && (
                       <div>
-                        <p className="text-xs text-gray-400 mb-0.5">构图</p>
-                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.composition}</p>
+                        <p className="text-xs text-zinc-400 mb-0.5">构图</p>
+                        <p className="text-xs text-zinc-600 m-0">{savedPrompt.styleAnalysis.composition}</p>
                       </div>
                     )}
                     {savedPrompt.styleAnalysis.colorTreatment && (
                       <div>
-                        <p className="text-xs text-gray-400 mb-0.5">色彩</p>
-                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.colorTreatment}</p>
+                        <p className="text-xs text-zinc-400 mb-0.5">色彩</p>
+                        <p className="text-xs text-zinc-600 m-0">{savedPrompt.styleAnalysis.colorTreatment}</p>
                       </div>
                     )}
                     {savedPrompt.styleAnalysis.vibeMood && (
                       <div>
-                        <p className="text-xs text-gray-400 mb-0.5">氛围</p>
-                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.vibeMood}</p>
+                        <p className="text-xs text-zinc-400 mb-0.5">氛围</p>
+                        <p className="text-xs text-zinc-600 m-0">{savedPrompt.styleAnalysis.vibeMood}</p>
                       </div>
                     )}
                     {savedPrompt.styleAnalysis.lighting && (
                       <div>
-                        <p className="text-xs text-gray-400 mb-0.5">光照</p>
-                        <p className="text-xs text-gray-600 m-0">{savedPrompt.styleAnalysis.lighting}</p>
+                        <p className="text-xs text-zinc-400 mb-0.5">光照</p>
+                        <p className="text-xs text-zinc-600 m-0">{savedPrompt.styleAnalysis.lighting}</p>
                       </div>
                     )}
                   </div>
                 </div>
               )}
-              {/* 兼容旧格式：完整 prompt */}
               {!savedPrompt.styleAnalysis && (
-                <p className="text-sm text-gray-600 leading-relaxed mb-3">
+                <p className="text-sm text-zinc-600 leading-relaxed mb-3">
                   {savedPrompt.prompt}
                 </p>
               )}
-              <div className="flex justify-between text-xs text-gray-400">
+              <div className="flex justify-between text-xs text-zinc-400">
                 <span>
                   {savedPrompt.imageAlt ? `Alt: ${savedPrompt.imageAlt.slice(0, 30)}${savedPrompt.imageAlt.length > 30 ? "…" : ""}` : "无 Alt 文本"}
                 </span>
@@ -318,13 +344,12 @@ function Popup() {
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-400 italic">
+            <p className="text-sm text-zinc-400 italic">
               在任意页面悬停图片并点击分析按钮，即可保存图片描述。
             </p>
           )}
         </div>
 
-        {/* Generation History Section - Radix UI Collapsible */}
         <Collapsible.Root
           open={showHistory}
           onOpenChange={(open) => {
@@ -332,9 +357,9 @@ function Popup() {
             if (open) loadHistory();
           }}
         >
-          <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
+          <div className="border border-zinc-200 rounded-xl p-4 bg-white shadow-sm">
             <div className="flex items-center justify-between mb-0">
-              <span className="text-sm font-semibold text-gray-900">生成历史</span>
+              <span className="text-sm font-semibold text-zinc-900">生成历史</span>
               <div className="flex items-center gap-2">
                 {history.length > 0 && (
                   <button
@@ -346,7 +371,7 @@ function Popup() {
                 )}
                 <Collapsible.Trigger asChild>
                   <button
-                    className="px-2 py-1 border-none bg-blue-50 text-blue-600 rounded-md text-xs hover:bg-blue-100 transition-colors flex items-center gap-1"
+                    className="px-2 py-1 border-none bg-zinc-100 text-zinc-600 rounded-md text-xs hover:bg-zinc-200 transition-colors flex items-center gap-1"
                   >
                     {showHistory ? (
                       <>
@@ -366,13 +391,13 @@ function Popup() {
 
             <Collapsible.Content className="mt-3 overflow-hidden data-[state=closed]:animate-slideUp data-[state=open]:animate-slideDown">
               {history.length === 0 ? (
-                <p className="text-sm text-gray-400 italic py-2">
+                <p className="text-sm text-zinc-400 italic py-2">
                   暂无生成历史。
                 </p>
               ) : (
                 <div className="space-y-3">
                   {history.map((item) => (
-                    <div key={item.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                    <div key={item.id} className="border border-zinc-200 rounded-lg overflow-hidden">
                       <img
                         src={item.imageDataUrl}
                         alt="Generated"
@@ -380,10 +405,10 @@ function Popup() {
                         onClick={() => handleDownload(item.imageDataUrl)}
                       />
                       <div className="p-2">
-                        <p className="text-xs text-gray-400 mb-1">
+                        <p className="text-xs text-zinc-400 mb-1">
                           {item.size} · {formatTime(item.createdAt)}
                         </p>
-                        <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">
+                        <p className="text-xs text-zinc-600 leading-relaxed line-clamp-2">
                           {item.prompt}
                         </p>
                       </div>
